@@ -1,1 +1,0 @@
-{"level":"fatal","msg":"Get redis://0.0.0.0:6379/ping: unsupported protocol scheme \"redis\"","time":"2020-01-29T23:51:58-05:00"}

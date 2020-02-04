@@ -1,1 +1,0 @@
-{"level":"fatal","msg":"parse redis://0.0.0.0:6379ping: invalid port \":6379ping\" after host","time":"2020-01-29T23:51:44-05:00"}
