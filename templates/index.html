@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Upload file</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+</head>
+
+<style>
+  div.dropzone
+{
+    position: fixed; top: 0; left: 0;
+    z-index: 9999999999;
+    width: 100%; height: 100%;
+    background-color: rgba(0,0,0,0.5);
+    transition: visibility 175ms, opacity 175ms;
+}
+div.middle-message{
+  border: 2px dashed #bbb;
+  -webkit-border-radius: 5px;
+  border-radius: 5px;
+  padding: 50px;
+  text-align: center;
+  font: 21pt bold arial;
+  color: #bbb;
+
+}
+div.area{
+  width: 45em;
+ padding: 15px;
+ border: 1px solid #333;
+ background: rgba(0,0,0,0.7);
+}
+div.dropBody{
+  background: #333;
+position: absolute;
+left: 50%;
+top: 50%;
+transform: translate(-50%, -50%);
+}
+</style>
+
+<body>
+  <div style="visibility:hidden; opacity:0" class="dropzone">
+    <div class="dropBody">
+      <div class="area">
+        <div class="middle-message"></div>
+      </div>
+    </div>
+  </div>
+  <div class="container">
+    <form enctype="multipart/form-data" action="/upload" method="post" id="myForm">
+
+      <h1 class="text-primary">1P10 Python Grader (Alpha)</h1>
+      <p class="text-info">Choose the lab number (not section), select your file (or Drag and Drop) and click Upload</p>
+      <select name="labs" class="form-control">
+        <option value="1">Wk-2 Projectile Motion</option>
+        <option value="2">Wk-3 GPA Calculator</option>
+        <option value="3" selected="selected">Wk-6/7 Means and Standard Deviations</option>
+      </select>
+      <label class="custom-file" style="margin-top: 10px; margin-bottom: 10px;" />
+      <input type="file" name="uploadfile" id="file" accept=".py" class="custom-file-input" />
+      <span class="custom-file-control"></span>
+      </label>
+      <input type="hidden" name="token" value="{{.}}" />
+
+    </form>
+
+    <button type="button" class="btn btn-primary" onclick="check()">Upload</button>
+  </div>
+
+</body>
+<script>
+
+  function check() {
+    if (document.getElementById("file").value == "") {
+      alert("Must Select a File to Upload")
+    }
+    else {
+      document.getElementById("myForm").submit();
+    }
+  }
+  function makeDroppable(element, callback) {
+
+    var input = document.getElementById('file');
+    input.addEventListener('change', triggerCallback);
+    window.addEventListener('dragover', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      element.classList.add('dragover');
+      if (e.dataTransfer.types[0] === 'Files') {
+        lastTarget = e.target;
+        document.querySelector(".dropzone").style.visibility = "";
+        document.querySelector(".dropzone").style.opacity = 1;
+        document.querySelector(".middle-message").innerHTML = "Upload";
+      }
+    });
+
+    window.addEventListener('dragleave', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      element.classList.remove('dragover');
+      if (e.target === lastTarget || e.target === document) {
+        document.querySelector(".dropzone").style.visibility = "hidden";
+        document.querySelector(".dropzone").style.opacity = 0;
+      }
+    });
+
+    window.addEventListener('drop', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      element.classList.remove('dragover');
+      if (e.target === lastTarget || e.target === document) {
+        document.querySelector(".dropzone").style.visibility = "hidden";
+        document.querySelector(".dropzone").style.opacity = 0;
+      }
+      triggerCallback(e);
+    });
+
+    function triggerCallback(e) {
+      var files;
+      if (e.dataTransfer) {
+        files = e.dataTransfer.files;
+      } else if (e.target) {
+        files = e.target.files;
+      }
+      callback.call(null, files);
+
+    }
+  }
+  var lastTarget = null;
+  var element = document.getElementById('file').parentElement;
+  function callback(files) {
+    if (files.length > 1) {
+      alert('Can only upload one file');
+    }
+    else if (checkname(files[0].name)[0] !== 'py') {
+      alert('Must Upload a Python script');
+    }
+    else if (files[0].size > 20000) {
+      alert('File size too big')
+    }
+    else {
+      document.getElementById('file').files = files
+    }
+  }
+  makeDroppable(element, callback);
+
+  function checkname(ex) {
+    return (/[.]/.exec(ex)) ? /[^.]+$/.exec(ex) : undefined;
+  }
+
+
+</script>
+
+</html>
