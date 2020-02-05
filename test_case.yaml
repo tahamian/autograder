@@ -1,0 +1,8 @@
+labs:
+    - name : lab_1  
+      testcase: 
+        - type: stdout
+          expected:
+            - values: []
+              points: 0.5
+              feedback: ""

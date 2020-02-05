@@ -4,4 +4,4 @@ redis_server: redis://0.0.0.0:6379
 # log file location
 log_dir: logs/
 
-base_dir: templates/
+base_dir: ./templates/

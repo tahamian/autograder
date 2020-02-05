@@ -19,6 +19,8 @@ import (
 	"sync"
 	"time"
 
+	"autograder"
+
 	redis "github.com/go-redis/redis"
 	mux "github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
@@ -201,7 +203,7 @@ func handlemain(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	t := template.Must(template.ParseFiles("/go/templates/index.html"))
+	t := template.Must(template.ParseFiles("./templates/index.html"))
 	err := t.ExecuteTemplate(w, "index.html", "ssd")
 	if err != nil {
 		log.WithFields(log.Fields{"Error": err}).Info("Template is missing")
@@ -271,6 +273,10 @@ func main() {
 
 	var c ConfigServer
 	c.getConf(*pathptr)
+
+	var a autograder.Labs
+
+	a.getConf("test_case.yaml")
 
 	serverCfg := Config{
 		Host:         "0.0.0.0:9090",
