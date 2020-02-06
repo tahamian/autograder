@@ -4,4 +4,14 @@ redis_server: redis://0.0.0.0:6379
 # log file location
 log_dir: logs/
 
+# where are the html templates localted
 base_dir: ./templates/
+
+# rate limiter 50 times an hour
+rate_limiter: 50-H
+
+# server port
+server_port: 9090
+
+# python test_case path
+test_case_path: ./test_cases/
