@@ -1,25 +1,30 @@
-package autograder
+package server
 
 import (
 	"fmt"
 	"time"
 
-	"github.com/go-redis/redis"
 	log "github.com/sirupsen/logrus"
 	"github.com/ulule/limiter"
 	sredis "github.com/ulule/limiter/drivers/store/redis"
 )
 
-// can make this a pointer
-func initalize_redis(redis_url string, rate_limit string) (limiter.Store, limiter.Rate) {
+type Redis struct {
+	Redis_server string
+	Rate_limit   string
+	Max_retry 	 int
+}
+
+// TODO can make this a pointer
+func initalize_redis(redis Redis) (limiter.Store, limiter.Rate) {
 	// create rate limiter
-	rate, err := limiter.NewRateFromFormatted(rate_limit)
+	rate, err := limiter.NewRateFromFormatted(redis.Rate_limit)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// Create a redis client.
-	option, err := redis.ParseURL(redis_url + "/0")
+	option, err := redis.ParseURL(redis.Redis_server + "/0")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -27,6 +32,7 @@ func initalize_redis(redis_url string, rate_limit string) (limiter.Store, limite
 	client := redis.NewClient(option)
 
 	pong, err := client.Ping().Result()
+
 	// redis_server := strings.Replace(c.Redis_server, "redis", "http", 1)
 	if err != nil {
 		log.Info(err)
@@ -45,7 +51,7 @@ func initalize_redis(redis_url string, rate_limit string) (limiter.Store, limite
 	// Create a store with the redis client.
 	store, err := sredis.NewStoreWithOptions(client, limiter.StoreOptions{
 		Prefix:   "limiter_http",
-		MaxRetry: 3,
+		MaxRetry: redis.Max_retry,
 	})
 	if err != nil {
 		log.Fatal(err)
