@@ -1,5 +1,5 @@
 # Autograder
-
+[![Build Status](https://travis-ci.com/tahamian/autograder.svg?branch=master)](https://travis-ci.com/tahamian/autograder)
 ## Run using Docker compose
 
 ```
