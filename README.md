@@ -1,7 +1,22 @@
 # Autograder
+
 [![Build Status](https://travis-ci.com/tahamian/autograder.svg?branch=master)](https://travis-ci.com/tahamian/autograder)
 [![Go Report Card](https://goreportcard.com/badge/github.com/tahamian/autograder)](https://goreportcard.com/report/github.com/tahamian/autograder)
-## Run using Docker compose
+
+Autograder evalutes python scripts uploaded to the server and checks the output.
+All evaluations are done in docker containers for code isolation.
+If a user submits malisious code it will be excecuted inside the container.
+
+
+## Requirements to run
+
+- Docker installed
+- access to dockerhub image []
+
+## Run app
+
+### Run using Docker compose
+
 
 ```
 cd autograder
@@ -11,7 +26,7 @@ cd autograder
 
 Requires a redis instance to running set in config.yaml
 
-## Run as a docker contianer
+### Run as a docker contianer
 
 ```
 cd autograder/server/
@@ -21,7 +36,7 @@ docker build . -t autograder
 ```
 
 
-## Build server
+#### Build server
 
 ```
 go get -d autograder
@@ -31,10 +46,19 @@ cd autograder/server/
 make all
 ```
 
-## Run go server
+#### Run go server
 
 ```
 go get -d autograder
 
 go run main.go
+```
+
+
+## Run Tests
+
+```
+cd autograder
+
+go test
 ```

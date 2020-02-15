@@ -1,5 +1,0 @@
-package marker
-
-func main() {
-
-}
