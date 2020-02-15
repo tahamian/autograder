@@ -1,3 +1,7 @@
 language: go
 
+install:
+  - export GOPATH="${TRAVIS_BUILD_DIR}:$GOPATH"
+#  - export PATH="${TRAVIS_BUILD_DIR}:$PATH"
+
 script: make build
