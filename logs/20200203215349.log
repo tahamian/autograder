@@ -1,0 +1,2 @@
+{"level":"info","msg":"dial tcp 0.0.0.0:6379: connect: connection refused","time":"2020-02-03T21:53:49-05:00"}
+{"level":"info","msg":"Successful PingPONG","time":"2020-02-03T21:53:59-05:00"}

@@ -1,0 +1,1 @@
+{"level":"fatal","msg":"Get http://0.0.0.0:6379/ping: dial tcp 0.0.0.0:6379: connect: connection refused","time":"2020-01-29T23:53:26-05:00"}
