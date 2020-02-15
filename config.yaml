@@ -23,6 +23,11 @@ template_path: ./templates
 # python test_case path
 test_case_path: ./test_cases/
 
+host: 0.0.0.0
+
+read_timeout: 5
+
+write_timeout: 5
 
 labs:
   -
