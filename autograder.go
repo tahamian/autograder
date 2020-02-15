@@ -1,6 +1,7 @@
 package autograder
 
 import (
+	"fmt"
 	"io/ioutil"
 	"log"
 
@@ -41,6 +42,13 @@ func (c *Labs) getConf(path string) *Labs {
 	return c
 }
 
-func list_test_cases(path string) {
+func (c *Labs) GetNumLabs() {
+	fmt.Println("this is a test")
 
+	var a Labs
+	a.getConf("/Users/ninjamian/go/src/autograder/test_case.yaml")
+
+	for _, element := range a.Labs {
+		fmt.Println(element.name)
+	}
 }
