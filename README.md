@@ -1,5 +1,8 @@
 # Autograder
 
+[![Build Status](https://travis-ci.com/tahamian/autograder.svg?branch=master)](https://travis-ci.com/tahamian/autograder)
+[![Go Report Card](https://goreportcard.com/badge/github.com/tahamian/autograder)](https://goreportcard.com/report/github.com/tahamian/autograder)
+
 Autograder evalutes python scripts uploaded to the server and checks the output.
 All evaluations are done in docker containers for code isolation.
 If a user submits malisious code it will be excecuted inside the container.
@@ -13,6 +16,7 @@ If a user submits malisious code it will be excecuted inside the container.
 ## Run app
 
 ### Run using Docker compose
+
 
 ```
 cd autograder
@@ -49,6 +53,7 @@ go get -d autograder
 
 go run main.go
 ```
+
 
 ## Run Tests
 
