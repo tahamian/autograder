@@ -1,1 +1,0 @@
-{"level":"fatal","msg":"parse 0.0.0.0:6379/0: first path segment in URL cannot contain colon","time":"2020-01-29T23:38:35-05:00"}
