@@ -22,6 +22,10 @@ type ConfigServer struct {
 	Base_dir     string
 	Labs         Labs
 	Template_path string
+	Host string
+	Read_timeout int32
+	Write_timeout int32
+	Server_port string
 }
 
 type Labs struct {
@@ -106,10 +110,10 @@ func StartServer(config_path string) *HTMLServer {
 
 	htmlServer := HTMLServer{
 		server: &http.Server{
-			Addr:           cfg.Host,
+			Addr:           config.Host + ":" + config.Server_port,
 			Handler:        router,
-			ReadTimeout:    cfg.ReadTimeout,
-			WriteTimeout:   cfg.WriteTimeout,
+			ReadTimeout:    time.Duration(config.Read_timeout),
+			WriteTimeout:   time.Duration(config.Write_timeout),
 			MaxHeaderBytes: 1 << 20,
 		},
 	}
@@ -117,7 +121,7 @@ func StartServer(config_path string) *HTMLServer {
 	htmlServer.wg.Add(1)
 
 	go func() {
-		fmt.Printf("\nHTMLServer : Service started : Host=%v\n", cfg.Host)
+		fmt.Printf("\nHTMLServer : Service started : Host=%v\n", config.Host)
 		htmlServer.server.ListenAndServe()
 		htmlServer.wg.Done()
 	}()
@@ -143,12 +147,6 @@ func (htmlServer *HTMLServer) Stop() error {
 	htmlServer.wg.Wait()
 	fmt.Printf("\nHTMLServer : Stopped\n")
 	return nil
-}
-
-type Config struct {
-	Host         string
-	ReadTimeout  time.Duration
-	WriteTimeout time.Duration
 }
 
 type HTMLServer struct {
