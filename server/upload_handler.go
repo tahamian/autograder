@@ -121,9 +121,10 @@ func upload(w http.ResponseWriter, r *http.Request) {
 		}
 
 		defer file.Close()
+		id := time.Now().Format("20060102150405") + strconv.Itoa(rand.Intn(1000))
 
-		// Open the file
-		f, err := os.OpenFile("./files/"+handler.Filename, os.O_WRONLY|os.O_CREATE, 0666)
+		// Open the file create the file and then move it to the docker image
+		f, err := os.OpenFile("./files/"+handler.Filename + id, os.O_WRONLY|os.O_CREATE, 0666)
 		if err != nil {
 			template_handler(w, r, "File did not load", (logerror{goError: err, errortype: "",
 				info: "problem opening the file", oldFileName: "./files/" + handler.Filename,
@@ -141,7 +142,6 @@ func upload(w http.ResponseWriter, r *http.Request) {
 		}
 
 		//Generate unique id
-		id := time.Now().Format("20060102150405") + strconv.Itoa(rand.Intn(1000))
 
 		//Rename the file with the unique id
 		err = os.Rename("./files/"+handler.Filename, "./files/"+id+".py")
@@ -153,7 +153,7 @@ func upload(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Run the test with the given parameter
-		cmd := exec.Command("python3", "./scripts/main.py", "./files/"+id+".py", lab_num)
+		cmd := exec.Command("python", "./scripts/main.py", "./files/"+id+".py", lab_num)
 		// Use a bytes.Buffer to get the output
 		var buf bytes.Buffer
 		var stderr bytes.Buffer
