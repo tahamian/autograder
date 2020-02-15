@@ -1,5 +1,12 @@
-# location of the redis instance
-redis_server: redis://0.0.0.0:6379
+# redis settings
+redis:
+  # location of the redis instance
+  redis_server: redis://0.0.0.0:6379
+  # rate limiter 50 times an hour
+  rate_limiter: 50-H
+  # retries connecting to redis instance
+  max_retry: 3
+
 
 # log file location
 log_dir: logs/
@@ -7,11 +14,28 @@ log_dir: logs/
 # where are the html templates localted
 base_dir: ./templates/
 
-# rate limiter 50 times an hour
-rate_limiter: 50-H
-
 # server port
 server_port: 9090
 
+# path to templates
+template_path: ./templates
+
 # python test_case path
 test_case_path: ./test_cases/
+
+
+labs:
+  -
+    name: lab_1
+    testcase:
+      -
+        expected:
+          -
+            feedback: "this is the wrong anwser"
+            points: 0.5
+            values:
+              - "1"
+              - "2.6"
+        type: stdout
+
+
