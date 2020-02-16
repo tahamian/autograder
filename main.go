@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"grader/server"
+	"autograder/server"
 	"os"
 	"os/signal"
 )

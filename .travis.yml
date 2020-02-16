@@ -1,6 +1,6 @@
 language: go
 
-go_import_path: grader
+go_import_path: autograder
 
 install:
   - export GOPATH="${TRAVIS_BUILD_DIR}/Godeps/_workspace:$GOPATH"
