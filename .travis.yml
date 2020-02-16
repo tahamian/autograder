@@ -1,7 +1,6 @@
 language: go
 
-#before_script:
-#  - go vet ./...
+go_import_path: grader
 
 install:
   - export GOPATH="${TRAVIS_BUILD_DIR}/Godeps/_workspace:$GOPATH"
