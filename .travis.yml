@@ -1,7 +1,7 @@
 language: go
 
-before_script:
-  - go vet ./...
+#before_script:
+#  - go vet ./...
 
 install:
   - export GOPATH="${TRAVIS_BUILD_DIR}/Godeps/_workspace:$GOPATH"
