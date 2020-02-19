@@ -12,7 +12,7 @@ func handlemain(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	t := template.Must(template.ParseFiles(config.Template_path + "/index.html"))
+	t := template.Must(template.ParseFiles(config.TemplatePath + "/index.html"))
 	err := t.ExecuteTemplate(w, "index.html", "")
 	if err != nil {
 		log.WithFields(log.Fields{"Error": err}).Info("Template is missing")

@@ -1,37 +1,35 @@
 package server
 
 import (
-	"fmt"
 	"time"
 
+	"github.com/go-redis/redis"
 	log "github.com/sirupsen/logrus"
 	"github.com/ulule/limiter"
 	sredis "github.com/ulule/limiter/drivers/store/redis"
-	redis "github.com/go-redis/redis"
 )
 
 type Redis struct {
-	Redis_server string
-	Rate_limit   string
-	Max_retry 	 int
+MaxRetry    int    `yaml:"max_retry"`
+RateLimiter string `yaml:"rate_limiter"`
+RedisServer string `yaml:"redis_server"`
 }
 
 // TODO can make this a pointer
 func initalize_redis(redis_config Redis) (limiter.Store, limiter.Rate) {
 	// create rate limiter
-	rate, err := limiter.NewRateFromFormatted(redis_config.Rate_limit)
+	rate, err := limiter.NewRateFromFormatted(redis_config.RateLimiter)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// Create a redis client.
-	option, err := redis.ParseURL(redis_config.Redis_server + "/0")
+	option, err := redis.ParseURL(redis_config.RedisServer + "/0")
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	client := redis.NewClient(option)
-
 	pong, err := client.Ping().Result()
 
 	// redis_server := strings.Replace(c.Redis_server, "redis", "http", 1)
@@ -45,14 +43,14 @@ func initalize_redis(redis_config Redis) (limiter.Store, limiter.Rate) {
 				break
 			}
 			time.Sleep(10 * time.Second)
-			fmt.Println(err)
+			log.Info(err)
 		}
 	}
 
 	// Create a store with the redis client.
 	store, err := sredis.NewStoreWithOptions(client, limiter.StoreOptions{
 		Prefix:   "limiter_http",
-		MaxRetry: redis_config.Max_retry,
+		MaxRetry: redis_config.MaxRetry,
 	})
 	if err != nil {
 		log.Fatal(err)
