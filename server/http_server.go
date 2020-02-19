@@ -5,21 +5,20 @@ import (
 	"fmt"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
+	"github.com/docker/docker/pkg/archive"
 	"github.com/gorilla/mux"
+	"github.com/jhoonb/archivex"
+	"github.com/mitchellh/go-homedir"
+	log "github.com/sirupsen/logrus"
 	"github.com/ulule/limiter"
 	"github.com/ulule/limiter/drivers/middleware/stdlib"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
-	log "github.com/sirupsen/logrus"
 	"net/http"
 	"os"
 	"sync"
 	"time"
-"github.com/jhoonb/archivex"
-
-	//"context"
-	//"github.com/docker/docker/api/types"
-	//"github.com/docker/docker/client"
+	//"github.com/mitchellh/go-homedir"
 )
 
 type ConfigServer struct {
@@ -89,7 +88,7 @@ func (c *ConfigServer) getConf(path string) *ConfigServer {
 }
 
 func build_image(){
-
+	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
 		panic(err)
@@ -101,8 +100,10 @@ func build_image(){
 	tar.AddAll("marker", false)
 	tar.Close()
 
+	filePath, _ := homedir.Expand("marker")
+	dockerBuildContext, _ := archive.TarWithOptions(filePath, &archive.TarOptions{})
 
-	dockerBuildContext, err := os.Open("marker/conf.tar")
+	//dockerBuildContext, err := os.Open("marker/conf.tar")
 
 
 	//imageName := "autograder"
@@ -110,10 +111,10 @@ func build_image(){
 	buildOptions := types.ImageBuildOptions{
 		Dockerfile: "Dockerfile",
 		Tags: []string{"autograder"},
-		Context: dockerBuildContext,
+		//Context: dockerBuildContext,
 	}
 
-	buildResponse, err := cli.ImageBuild(context.Background(), dockerBuildContext, buildOptions)
+	buildResponse, err := cli.ImageBuild(ctx, dockerBuildContext, buildOptions)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -129,6 +130,16 @@ func build_image(){
 			log.Fatal(err)
 		}
 	}()
+
+
+	//resp, err := cli.ContainerCreate(ctx, &container.Config{
+	//	Image: "autograder",
+	//}, nil, nil, "")
+	//if err != nil {
+	//	panic(err)
+	//}
+	//
+	//fmt.Println(resp.ID)
 	//if err != nil {
 	//	log.Fatal(err)
 	//}

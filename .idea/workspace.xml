@@ -2,17 +2,9 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="1562fca6-d28b-47a8-962e-b69000de5710" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/marker/scripts/__main__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/marker/scripts/requirements.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/config.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/config.yaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/marker/Dockerfile" beforeDir="false" afterPath="$PROJECT_DIR$/marker/Dockerfile" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/marker/scripts/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/marker/scripts/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/marker/conf.tar" beforeDir="false" afterPath="$PROJECT_DIR$/marker/conf.tar" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/server/http_server.go" beforeDir="false" afterPath="$PROJECT_DIR$/server/http_server.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/server/index_handler.go" beforeDir="false" afterPath="$PROJECT_DIR$/server/index_handler.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/server/rate_limiter.go" beforeDir="false" afterPath="$PROJECT_DIR$/server/rate_limiter.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/server/upload_handler.go" beforeDir="false" afterPath="$PROJECT_DIR$/server/upload_handler.go" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -22,11 +14,11 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file pinned="false" current-in-tab="true">
+      <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/server/rate_limiter.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="150">
-              <caret line="10" lean-forward="true" selection-start-line="10" selection-end-line="10" />
+            <state relative-caret-position="495">
+              <caret line="33" selection-start-line="33" selection-end-line="33" />
               <folding>
                 <element signature="e#16#194#0" expanded="true" />
               </folding>
@@ -43,11 +35,11 @@
           </provider>
         </entry>
       </file>
-      <file pinned="false" current-in-tab="false">
+      <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/server/http_server.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="327">
-              <caret line="165" column="30" selection-start-line="165" selection-start-column="30" selection-end-line="165" selection-end-column="30" />
+            <state relative-caret-position="494">
+              <caret line="102" column="41" selection-start-line="102" selection-start-column="41" selection-end-line="102" selection-end-column="41" />
               <folding>
                 <element signature="e#16#420#0" expanded="true" />
               </folding>
@@ -90,7 +82,7 @@
         <entry file="file://$PROJECT_DIR$/marker/Dockerfile">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="30">
-              <caret line="2" column="23" selection-start-line="2" selection-start-column="23" selection-end-line="2" selection-end-column="23" />
+              <caret line="2" column="23" lean-forward="true" selection-start-line="2" selection-start-column="23" selection-end-line="2" selection-end-column="23" />
             </state>
           </provider>
         </entry>
@@ -138,8 +130,8 @@
     <findStrings>
       <find>template_handler</find>
       <find>buf</find>
-      <find>dockerfile</find>
       <find>defer</find>
+      <find>dockerfile</find>
     </findStrings>
   </component>
   <component name="GOROOT" path="/usr/local/Cellar/go/1.13.6/libexec" />
@@ -163,8 +155,8 @@
         <option value="$PROJECT_DIR$/server/upload_handler.go" />
         <option value="$PROJECT_DIR$/config.yaml" />
         <option value="$PROJECT_DIR$/marker/Dockerfile" />
-        <option value="$PROJECT_DIR$/server/http_server.go" />
         <option value="$PROJECT_DIR$/server/rate_limiter.go" />
+        <option value="$PROJECT_DIR$/server/http_server.go" />
       </list>
     </option>
   </component>
@@ -195,11 +187,6 @@
               <item name="autograder" type="462c0819:PsiDirectoryNode" />
               <item name="marker" type="462c0819:PsiDirectoryNode" />
             </path>
-            <path>
-              <item name="autograder" type="b2602c69:ProjectViewProjectNode" />
-              <item name="autograder" type="462c0819:PsiDirectoryNode" />
-              <item name="server" type="462c0819:PsiDirectoryNode" />
-            </path>
           </expand>
           <select />
         </subPane>
@@ -218,8 +205,9 @@
       <recent name="$PROJECT_DIR$" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
-      <recent name="$PROJECT_DIR$/marker/scripts" />
       <recent name="$PROJECT_DIR$/marker" />
+      <recent name="$PROJECT_DIR$" />
+      <recent name="$PROJECT_DIR$/marker/scripts" />
       <recent name="$PROJECT_DIR$/server" />
     </key>
   </component>
@@ -361,13 +349,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/../github.com/docker/docker/api/types/client.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="371">
-          <caret line="162" column="27" selection-start-line="162" selection-start-column="22" selection-end-line="162" selection-end-column="27" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/server/upload_handler.go">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="296">
@@ -386,29 +367,36 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/server/rate_limiter.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="495">
+          <caret line="33" selection-start-line="33" selection-end-line="33" />
+          <folding>
+            <element signature="e#16#194#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/marker/Dockerfile">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="30">
-          <caret line="2" column="23" selection-start-line="2" selection-start-column="23" selection-end-line="2" selection-end-column="23" />
+          <caret line="2" column="23" lean-forward="true" selection-start-line="2" selection-start-column="23" selection-end-line="2" selection-end-column="23" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../github.com/docker/docker/api/types/client.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="371">
+          <caret line="162" column="27" selection-start-line="162" selection-start-column="22" selection-end-line="162" selection-end-column="27" />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/server/http_server.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="327">
-          <caret line="165" column="30" selection-start-line="165" selection-start-column="30" selection-end-line="165" selection-end-column="30" />
+        <state relative-caret-position="494">
+          <caret line="102" column="41" selection-start-line="102" selection-start-column="41" selection-end-line="102" selection-end-column="41" />
           <folding>
             <element signature="e#16#420#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/server/rate_limiter.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="150">
-          <caret line="10" lean-forward="true" selection-start-line="10" selection-end-line="10" />
-          <folding>
-            <element signature="e#16#194#0" expanded="true" />
           </folding>
         </state>
       </provider>
