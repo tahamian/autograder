@@ -1,10 +1,11 @@
 package main
 
 import (
-	"fmt"
+	//"fmt"
 	"autograder/server"
 	"os"
 	"os/signal"
+	log "github.com/sirupsen/logrus"
 )
 
 
@@ -16,6 +17,6 @@ func main() {
 	signal.Notify(sigChan, os.Interrupt)
 	<-sigChan
 
-	fmt.Println("main : shutting down")
+	log.Info("Stopping : autograder")
 
 }

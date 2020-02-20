@@ -66,6 +66,9 @@ func check_upload_file_extention(filename string, extentions []string) bool{
 
 
 func upload(w http.ResponseWriter, r *http.Request) {
+
+	log.Info("Got request")
+
 	if r.URL.Path != "/upload" {
 		http.NotFound(w, r)
 		return

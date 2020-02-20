@@ -23,7 +23,6 @@ func initalize_redis(redis_config Redis) (limiter.Store, limiter.Rate) {
 		log.Fatal(err)
 	}
 
-	// Create a redis client.
 	option, err := redis.ParseURL(redis_config.RedisServer + "/0")
 	if err != nil {
 		log.Fatal(err)
@@ -32,7 +31,6 @@ func initalize_redis(redis_config Redis) (limiter.Store, limiter.Rate) {
 	client := redis.NewClient(option)
 	pong, err := client.Ping().Result()
 
-	// redis_server := strings.Replace(c.Redis_server, "redis", "http", 1)
 	if err != nil {
 		log.Info(err)
 		for true {
@@ -47,7 +45,6 @@ func initalize_redis(redis_config Redis) (limiter.Store, limiter.Rate) {
 		}
 	}
 
-	// Create a store with the redis client.
 	store, err := sredis.NewStoreWithOptions(client, limiter.StoreOptions{
 		Prefix:   "limiter_http",
 		MaxRetry: redis_config.MaxRetry,
@@ -55,6 +52,8 @@ func initalize_redis(redis_config Redis) (limiter.Store, limiter.Rate) {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	log.Info("Successfully connected to redis server")
 
 	return store, rate
 }

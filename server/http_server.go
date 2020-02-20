@@ -7,7 +7,6 @@ import (
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/archive"
 	"github.com/gorilla/mux"
-	"github.com/jhoonb/archivex"
 	"github.com/mitchellh/go-homedir"
 	log "github.com/sirupsen/logrus"
 	"github.com/ulule/limiter"
@@ -15,7 +14,9 @@ import (
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"net/http"
-	"os"
+	"strings"
+
+	//"reflect"
 	"sync"
 	"time"
 	//"github.com/mitchellh/go-homedir"
@@ -40,7 +41,7 @@ type ConfigServer struct {
 	LogDir      string `yaml:"log_dir"`
 	ReadTimeout int    `yaml:"read_timeout"`
 	Redis       Redis `yaml:"redis"`
-	ServerPort   int    `yaml:"server_port"`
+	ServerPort   string    `yaml:"server_port"`
 	TemplatePath string `yaml:"template_path"`
 	TestCasePath string `yaml:"test_case_path"`
 	WriteTimeout int    `yaml:"write_timeout"`
@@ -87,31 +88,63 @@ func (c *ConfigServer) getConf(path string) *ConfigServer {
 	return c
 }
 
+func stringInSlice(a string, list []string) bool {
+
+	for _, b := range list {
+		match := strings.Split(b, ":")[0]
+		if a == match {
+			return true
+		}
+	}
+	return false
+}
+
 func build_image(){
+
+	imageName := "autograder"
+
 	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
-	os.MkdirAll("marker/conf",0755)
-	tar := new(archivex.TarFile)
-	tar.Create("marker/conf.tar")
-	tar.AddAll("marker", false)
-	tar.Close()
+
+	filter := types.ImageListOptions{
+		All: true,
+	}
+
+	images, err := cli.ImageList(ctx, filter)
+
+	if err != nil {
+		log.Fatal("Could not list docker images %v", err)
+	}
+
+
+
+	for i := range images {
+		if stringInSlice(imageName, images[i].RepoTags){
+			removalOptions := types.ImageRemoveOptions{
+				Force:true,
+				PruneChildren:true,
+			}
+
+			_, err = cli.ImageRemove(ctx, images[i].ID, removalOptions)
+
+			if err != nil {
+				log.Fatal("Failed to delete old autograder image and build a new one, %v", err)
+			}
+		}
+	}
+
+
 
 	filePath, _ := homedir.Expand("marker")
 	dockerBuildContext, _ := archive.TarWithOptions(filePath, &archive.TarOptions{})
 
-	//dockerBuildContext, err := os.Open("marker/conf.tar")
-
-
-	//imageName := "autograder"
-
 	buildOptions := types.ImageBuildOptions{
 		Dockerfile: "Dockerfile",
-		Tags: []string{"autograder"},
-		//Context: dockerBuildContext,
+		Tags: []string{imageName},
 	}
 
 	buildResponse, err := cli.ImageBuild(ctx, dockerBuildContext, buildOptions)
@@ -120,51 +153,16 @@ func build_image(){
 	}
 
 	defer func (){
-		//err = dockerBuildContext.Close()
-		//if err != nil {
-		//	log.Fatal(err)
-		//}
+		err = dockerBuildContext.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
 
 		err = buildResponse.Body.Close()
 		if err != nil {
 			log.Fatal(err)
 		}
 	}()
-
-
-	//resp, err := cli.ContainerCreate(ctx, &container.Config{
-	//	Image: "autograder",
-	//}, nil, nil, "")
-	//if err != nil {
-	//	panic(err)
-	//}
-	//
-	//fmt.Println(resp.ID)
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
-
-
-
-	//out, err := cli.ImagePull(ctx, imageName, types.ImagePullOptions{})
-	//if err != nil {
-	//	panic(err)
-	//}
-	//
-	//io.Copy(os.Stdout, out)
-	//
-	//resp, err := cli.ContainerCreate(ctx, &container.Config{
-	//	Image: imageName,
-	//}, nil, nil, "")
-	//if err != nil {
-	//	panic(err)
-	//}
-	//
-	//if err := cli.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{}); err != nil {
-	//	panic(err)
-	//}
-	//
-	//fmt.Println(resp.ID)
 }
 
 // Intializes the server builds marker docker image and
@@ -172,13 +170,13 @@ func StartServer(config_path string) *HTMLServer {
 
 	config.getConf(config_path)
 
-	build_image()
+	go build_image()
 
 	store, rate := initalize_redis(config.Redis)
 	middleware := stdlib.NewMiddleware(limiter.New(store, rate))
 
-	_, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	//_, cancel := context.WithCancel(context.Background())
+	//defer cancel()
 	router := mux.NewRouter()
 
 
@@ -188,10 +186,10 @@ func StartServer(config_path string) *HTMLServer {
 
 	htmlServer := HTMLServer{
 		server: &http.Server{
-			Addr:           config.Host + ":" + string(config.ServerPort),
+			Addr:           config.Host + ":" + config.ServerPort,
 			Handler:        router,
-			ReadTimeout:    time.Duration(config.ReadTimeout),
-			WriteTimeout:   time.Duration(config.WriteTimeout),
+			ReadTimeout:    time.Second * 5,
+			WriteTimeout:   time.Second * 5,
 			MaxHeaderBytes: 1 << 20,
 		},
 	}
@@ -199,10 +197,10 @@ func StartServer(config_path string) *HTMLServer {
 	htmlServer.wg.Add(1)
 
 	go func() {
-		fmt.Printf("\nHTMLServer : Service started : Host=%v\n", config.Host)
+		log.Info("HTMLServer : Service started : Host=", config.Host, ":",config.ServerPort)
 		err := htmlServer.server.ListenAndServe()
 		if err != nil {
-
+			log.Info("HTTP server failed to start ", err)
 		}
 		htmlServer.wg.Done()
 	}()
@@ -221,12 +219,12 @@ func (htmlServer *HTMLServer) Stop() error {
 	fmt.Printf("\nHTMLServer : Service stopping\n")
 	if err := htmlServer.server.Shutdown(ctx); err != nil {
 		if err := htmlServer.server.Close(); err != nil {
-			fmt.Printf("\nHTMLServer : Service stopping : Error=%v\n", err)
+			log.Info("HTMLServer : Service stopping : Error=", err)
 			return err
 		}
 	}
 	htmlServer.wg.Wait()
-	fmt.Printf("\nHTMLServer : Stopped\n")
+	log.Info("HTMLServer : Stopped")
 	return nil
 }
 
