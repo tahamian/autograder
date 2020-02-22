@@ -1,0 +1,26 @@
+{
+  "name": "autograder",
+  "homepage": "https://github.com/tahamian/autograder",
+  "authors": [
+    "tahamian <tahamian12@gmail.com>"
+  ],
+  "description": "Marks Python assignments",
+  "main": "main.go",
+  "keywords": [
+    "python",
+    "go"
+  ],
+  "license": "MIT",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "jquery": "^3.4.1",
+    "bootstrap": "^4.4.1"
+  }
+}
