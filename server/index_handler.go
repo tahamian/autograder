@@ -17,7 +17,7 @@ func handlemain(w http.ResponseWriter, r *http.Request) {
 
 
 	t := template.Must(template.ParseFiles(config.TemplatePath + "/index.html"))
-	err := t.ExecuteTemplate(w, "index.html", "")
+	err := t.ExecuteTemplate(w, "index.html", config.Labs)
 	if err != nil {
 		log.WithFields(log.Fields{"Error": err}).Info("Template is missing")
 		return

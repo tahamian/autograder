@@ -3,17 +3,22 @@ dockerfile_path: marker/Dockerfile
 host: "0.0.0.0"
 labs:
   -
-    name: lab_1
+    id: lab_1
+    name: Lab 1 - Hello world Program
+    problem_statement: Write a program in python that prints "Hello World"\nmake sure you have the correct spelling
     testcase:
       -
         expected:
           -
-            feedback: "this is the wrong anwser"
-            points: 0.5
+            feedback: "Correct!"
+            points: 1.0
             values:
-              - "1"
-              - "2.6"
+              - "Hello World"
+              - "hello world"
+              - "Hello world"
+              - "hello world"
         type: stdout
+
 log_dir: logs/
 read_timeout: 5
 redis:
