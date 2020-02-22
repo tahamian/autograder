@@ -5,9 +5,9 @@
   <title>Upload file</title>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
-  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
-  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+  <link rel="stylesheet" href="css/bootstrap.min.css">
+  <script src="js/jquery.min.js"></script>
+  <script src="js/bootstrap.min.js"></script>
 </head>
 
 <style>
@@ -57,24 +57,47 @@ transform: translate(-50%, -50%);
 
       <h1 class="text-primary">Python Grader (Beta)</h1>
       <p class="text-info">Choose the lab number (not section), select your file (or Drag and Drop) and click Upload</p>
-      <select name="labs" class="form-control">
-        <option value="1">Wk-2 Projectile Motion</option>
-        <option value="2">Wk-3 GPA Calculator</option>
-        <option value="3" selected="selected">Wk-6/7 Means and Standard Deviations</option>
+      <select id="labs" class="form-control" onchange="changeList()">
+        {{range $val := .}}
+        <option value="{{$val.ID}}" desc="{{$val.ProblemStatement}}">{{$val.Name}}</option>
+        {{end}}
       </select>
-      <label class="custom-file" style="margin-top: 10px; margin-bottom: 10px;" />
+      <label class="custom-file" style="margin-top: 10px; margin-bottom: 10px;">
       <input type="file" name="uploadfile" id="file" accept=".py" class="custom-file-input" />
       <span class="custom-file-control"></span>
       </label>
-      <input type="hidden" name="token" value="{{.}}" />
+
 
     </form>
+    <div class="alert alert-warning">
+      <h5>
+        Problem Statement
+      </h5>
+      <span id="description" style="white-space: pre-line" >
+      No Labs ...
+    </span>
+    </div>
+
+    <br>
+    <br>
+    <br>
+
+
 
     <button type="button" class="btn btn-primary" onclick="check()">Upload</button>
   </div>
 
 </body>
 <script>
+  $(document).ready(function() {
+    changeList()
+  });
+  function changeList(){
+    var e = document.getElementById("labs");
+    var strDesc = e.options[e.selectedIndex].getAttribute("desc");
+    var f = document.getElementById("description");
+    f.innerHTML = strDesc.replace(/\\n/g, "<br />");
+  }
 
   function check() {
     if (document.getElementById("file").value == "") {

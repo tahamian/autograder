@@ -3,50 +3,49 @@ package server
 import (
 	"context"
 	"fmt"
+	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/client"
+	"github.com/docker/docker/pkg/archive"
 	"github.com/gorilla/mux"
+	"github.com/mitchellh/go-homedir"
+	log "github.com/sirupsen/logrus"
 	"github.com/ulule/limiter"
 	"github.com/ulule/limiter/drivers/middleware/stdlib"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
-	log "github.com/sirupsen/logrus"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
-
-	//"grader/server/handlers"
 )
 
 type ConfigServer struct {
-	Redis		 Redis
-	Log_dir      string
-	Base_dir     string
-	Labs         Labs
-	Template_path string
-	Host string
-	Read_timeout int32
-	Write_timeout int32
-	Server_port string
+	BaseDir        string `yaml:"base_dir"`
+	DockerfilePath string `yaml:"dockerfile_path"`
+	Host           string `yaml:"host"`
+	Labs           []struct {
+	Name     string `yaml:"name"`
+	ID string `yaml:"id"`
+	ProblemStatement string `yaml:"problem_statement"`
+	Testcase []struct {
+	Expected []struct {
+	Feedback string   `yaml:"feedback"`
+	Points   float64  `yaml:"points"`
+	Values   []string `yaml:"values"`
+} `yaml:"expected"`
+	Type string `yaml:"type"`
+} `yaml:"testcase"`
+} `yaml:"labs"`
+	LogDir      string `yaml:"log_dir"`
+	ReadTimeout int    `yaml:"read_timeout"`
+	Redis       Redis `yaml:"redis"`
+	ServerPort   string    `yaml:"server_port"`
+	TemplatePath string `yaml:"template_path"`
+	TestCasePath string `yaml:"test_case_path"`
+	WriteTimeout int    `yaml:"write_timeout"`
+
 }
 
-type Labs struct {
-	Labs []Lab
-}
-
-type Lab struct {
-	name        string
-	LabTestCase []Testcase
-}
-
-type Testcase struct {
-	Type     string
-	Expected []Expected
-}
-
-type Expected struct {
-	Values   []string
-	Points   float32
-	Feedback string
-}
 
 type logerror struct {
 	goError     error
@@ -58,19 +57,16 @@ type logerror struct {
 
 var config = create_config()
 
-// create config with default values if yaml file is not intialized
 func create_config() ConfigServer{
 	c :=  ConfigServer{}
 
-	c.Template_path = "./templates"
-	c.Log_dir = "./logs"
-	c.Base_dir = "./"
+	c.TemplatePath = "./templates"
+	c.LogDir = "./logs"
+	c.BaseDir = "./"
 
-	c.Redis.Max_retry = 3
-	c.Redis.Redis_server = "0.0.0.0:6738"
-	c.Redis.Rate_limit = "50-H"
-
-
+	c.Redis.MaxRetry = 3
+	c.Redis.RedisServer = "0.0.0.0:6738"
+	c.Redis.RateLimiter = "50-H"
 	return c
 }
 
@@ -89,31 +85,111 @@ func (c *ConfigServer) getConf(path string) *ConfigServer {
 	return c
 }
 
+func stringInSlice(a string, list []string) bool {
+
+	for _, b := range list {
+		match := strings.Split(b, ":")[0]
+		if a == match {
+			return true
+		}
+	}
+	return false
+}
+
+func build_image(){
+
+	imageName := "autograder"
+
+	ctx := context.Background()
+	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	if err != nil {
+		log.Fatal(err)
+	}
+
+
+	filter := types.ImageListOptions{
+		All: true,
+	}
+
+	images, err := cli.ImageList(ctx, filter)
+
+	if err != nil {
+		log.Fatal("Could not list docker images %v", err)
+	}
+
+
+
+	for i := range images {
+		if stringInSlice(imageName, images[i].RepoTags){
+			removalOptions := types.ImageRemoveOptions{
+				Force:true,
+				PruneChildren:true,
+			}
+
+			_, err = cli.ImageRemove(ctx, images[i].ID, removalOptions)
+
+			if err != nil {
+				log.Fatal("Failed to delete old autograder image and build a new one, %v", err)
+			}
+		}
+	}
+
+
+
+	filePath, _ := homedir.Expand("marker")
+	dockerBuildContext, _ := archive.TarWithOptions(filePath, &archive.TarOptions{})
+
+	buildOptions := types.ImageBuildOptions{
+		Dockerfile: "Dockerfile",
+		Tags: []string{imageName},
+	}
+
+	buildResponse, err := cli.ImageBuild(ctx, dockerBuildContext, buildOptions)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer func (){
+		err = dockerBuildContext.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		err = buildResponse.Body.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}()
+}
+
+// Intializes the server builds marker docker image and
 func StartServer(config_path string) *HTMLServer {
 
-	// create and validate config
 	config.getConf(config_path)
 
-	store, rate := initalize_redis(config.Redis)
+	go build_image()
 
-	// Create a new middleware with the limiter instance.
+	store, rate := initalize_redis(config.Redis)
 	middleware := stdlib.NewMiddleware(limiter.New(store, rate))
 
-	_, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	//_, cancel := context.WithCancel(context.Background())
+	//defer cancel()
 	router := mux.NewRouter()
 
 
 	router.Handle("/", middleware.Handler(http.HandlerFunc(handlemain)))
 	router.HandleFunc("/upload", upload)
+	router.PathPrefix("/js/").Handler(http.StripPrefix("/js/", http.FileServer(http.Dir("./templates/js/"))))
+	router.PathPrefix("/css/").Handler(http.StripPrefix("/css/", http.FileServer(http.Dir("./templates/css/"))))
+
 
 
 	htmlServer := HTMLServer{
 		server: &http.Server{
-			Addr:           config.Host + ":" + config.Server_port,
+			Addr:           config.Host + ":" + config.ServerPort,
 			Handler:        router,
-			ReadTimeout:    time.Duration(config.Read_timeout),
-			WriteTimeout:   time.Duration(config.Write_timeout),
+			ReadTimeout:    time.Second * 5,
+			WriteTimeout:   time.Second * 5,
 			MaxHeaderBytes: 1 << 20,
 		},
 	}
@@ -121,8 +197,11 @@ func StartServer(config_path string) *HTMLServer {
 	htmlServer.wg.Add(1)
 
 	go func() {
-		fmt.Printf("\nHTMLServer : Service started : Host=%v\n", config.Host)
-		htmlServer.server.ListenAndServe()
+		log.Info("HTMLServer : Service started : Host=", config.Host, ":",config.ServerPort)
+		err := htmlServer.server.ListenAndServe()
+		if err != nil {
+			log.Info("HTTP server failed to start ", err)
+		}
 		htmlServer.wg.Done()
 	}()
 
@@ -140,12 +219,12 @@ func (htmlServer *HTMLServer) Stop() error {
 	fmt.Printf("\nHTMLServer : Service stopping\n")
 	if err := htmlServer.server.Shutdown(ctx); err != nil {
 		if err := htmlServer.server.Close(); err != nil {
-			fmt.Printf("\nHTMLServer : Service stopping : Error=%v\n", err)
+			log.Info("HTMLServer : Service stopping : Error=", err)
 			return err
 		}
 	}
 	htmlServer.wg.Wait()
-	fmt.Printf("\nHTMLServer : Stopped\n")
+	log.Info("HTMLServer : Stopped")
 	return nil
 }
 

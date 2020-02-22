@@ -1,5 +1,3 @@
-FROM alpine:latest
+FROM python:3
 
-RUN apk update
-
-
+ADD scripts /usr/local/

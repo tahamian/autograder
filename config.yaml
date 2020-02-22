@@ -1,46 +1,31 @@
-# redis settings
-redis:
-  # location of the redis instance
-  redis_server: redis://0.0.0.0:6379
-  # rate limiter 50 times an hour
-  rate_limiter: 50-H
-  # retries connecting to redis instance
-  max_retry: 3
-
-
-# log file location
-log_dir: logs/
-
-# where are the html templates localted
 base_dir: ./templates/
-
-# server port
-server_port: 9090
-
-# path to templates
-template_path: ./templates
-
-# python test_case path
-test_case_path: ./test_cases/
-
-host: 0.0.0.0
-
-read_timeout: 5
-
-write_timeout: 5
-
+dockerfile_path: marker/Dockerfile
+host: "0.0.0.0"
 labs:
   -
-    name: lab_1
+    id: lab_1
+    name: Lab 1 - Hello world Program
+    problem_statement: Write a program in python that prints "Hello World"\nmake sure you have the correct spelling
     testcase:
       -
         expected:
           -
-            feedback: "this is the wrong anwser"
-            points: 0.5
+            feedback: "Correct!"
+            points: 1.0
             values:
-              - "1"
-              - "2.6"
+              - "Hello World"
+              - "hello world"
+              - "Hello world"
+              - "hello world"
         type: stdout
 
-
+log_dir: logs/
+read_timeout: 5
+redis:
+  max_retry: 3
+  rate_limiter: 50-H
+  redis_server: "redis://0.0.0.0:6379"
+server_port: 9090
+template_path: ./templates
+test_case_path: ./test_cases/
+write_timeout: 5
