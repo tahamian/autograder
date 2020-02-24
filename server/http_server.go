@@ -24,28 +24,26 @@ type ConfigServer struct {
 	DockerfilePath string `yaml:"dockerfile_path"`
 	Host           string `yaml:"host"`
 	Labs           []struct {
-	Name     string `yaml:"name"`
-	ID string `yaml:"id"`
-	ProblemStatement string `yaml:"problem_statement"`
-	Testcase []struct {
-	Expected []struct {
-	Feedback string   `yaml:"feedback"`
-	Points   float64  `yaml:"points"`
-	Values   []string `yaml:"values"`
-} `yaml:"expected"`
-	Type string `yaml:"type"`
-} `yaml:"testcase"`
-} `yaml:"labs"`
-	LogDir      string `yaml:"log_dir"`
-	ReadTimeout int    `yaml:"read_timeout"`
-	Redis       Redis `yaml:"redis"`
-	ServerPort   string    `yaml:"server_port"`
+		Name             string `yaml:"name"`
+		ID               string `yaml:"id"`
+		ProblemStatement string `yaml:"problem_statement"`
+		Testcase         []struct {
+			Expected []struct {
+				Feedback string   `yaml:"feedback"`
+				Points   float64  `yaml:"points"`
+				Values   []string `yaml:"values"`
+			} `yaml:"expected"`
+			Type string `yaml:"type"`
+		} `yaml:"testcase"`
+	} `yaml:"labs"`
+	LogDir       string `yaml:"log_dir"`
+	ReadTimeout  int    `yaml:"read_timeout"`
+	Redis        Redis  `yaml:"redis"`
+	ServerPort   string `yaml:"server_port"`
 	TemplatePath string `yaml:"template_path"`
 	TestCasePath string `yaml:"test_case_path"`
 	WriteTimeout int    `yaml:"write_timeout"`
-
 }
-
 
 type logerror struct {
 	goError     error
@@ -57,8 +55,8 @@ type logerror struct {
 
 var config = create_config()
 
-func create_config() ConfigServer{
-	c :=  ConfigServer{}
+func create_config() ConfigServer {
+	c := ConfigServer{}
 
 	c.TemplatePath = "./templates"
 	c.LogDir = "./logs"
@@ -69,7 +67,6 @@ func create_config() ConfigServer{
 	c.Redis.RateLimiter = "50-H"
 	return c
 }
-
 
 func (c *ConfigServer) getConf(path string) *ConfigServer {
 
@@ -96,7 +93,7 @@ func stringInSlice(a string, list []string) bool {
 	return false
 }
 
-func build_image(){
+func build_image() {
 
 	imageName := "autograder"
 
@@ -105,7 +102,6 @@ func build_image(){
 	if err != nil {
 		log.Fatal(err)
 	}
-
 
 	filter := types.ImageListOptions{
 		All: true,
@@ -117,13 +113,11 @@ func build_image(){
 		log.Fatal("Could not list docker images %v", err)
 	}
 
-
-
 	for i := range images {
-		if stringInSlice(imageName, images[i].RepoTags){
+		if stringInSlice(imageName, images[i].RepoTags) {
 			removalOptions := types.ImageRemoveOptions{
-				Force:true,
-				PruneChildren:true,
+				Force:         true,
+				PruneChildren: true,
 			}
 
 			_, err = cli.ImageRemove(ctx, images[i].ID, removalOptions)
@@ -134,14 +128,12 @@ func build_image(){
 		}
 	}
 
-
-
 	filePath, _ := homedir.Expand("marker")
 	dockerBuildContext, _ := archive.TarWithOptions(filePath, &archive.TarOptions{})
 
 	buildOptions := types.ImageBuildOptions{
 		Dockerfile: "Dockerfile",
-		Tags: []string{imageName},
+		Tags:       []string{imageName},
 	}
 
 	buildResponse, err := cli.ImageBuild(ctx, dockerBuildContext, buildOptions)
@@ -149,7 +141,7 @@ func build_image(){
 		log.Fatal(err)
 	}
 
-	defer func (){
+	defer func() {
 		err = dockerBuildContext.Close()
 		if err != nil {
 			log.Fatal(err)
@@ -162,7 +154,7 @@ func build_image(){
 	}()
 }
 
-// Intializes the server builds marker docker image and
+// Initializes the server builds marker docker image and
 func StartServer(config_path string) *HTMLServer {
 
 	config.getConf(config_path)
@@ -176,13 +168,10 @@ func StartServer(config_path string) *HTMLServer {
 	//defer cancel()
 	router := mux.NewRouter()
 
-
 	router.Handle("/", middleware.Handler(http.HandlerFunc(handlemain)))
 	router.HandleFunc("/upload", upload)
 	router.PathPrefix("/js/").Handler(http.StripPrefix("/js/", http.FileServer(http.Dir("./templates/js/"))))
 	router.PathPrefix("/css/").Handler(http.StripPrefix("/css/", http.FileServer(http.Dir("./templates/css/"))))
-
-
 
 	htmlServer := HTMLServer{
 		server: &http.Server{
@@ -197,7 +186,7 @@ func StartServer(config_path string) *HTMLServer {
 	htmlServer.wg.Add(1)
 
 	go func() {
-		log.Info("HTMLServer : Service started : Host=", config.Host, ":",config.ServerPort)
+		log.Info("HTMLServer : Service started : Host=", config.Host, ":", config.ServerPort)
 		err := htmlServer.server.ListenAndServe()
 		if err != nil {
 			log.Info("HTTP server failed to start ", err)
@@ -207,10 +196,7 @@ func StartServer(config_path string) *HTMLServer {
 
 	return &htmlServer
 
-
-
 }
-
 
 func (htmlServer *HTMLServer) Stop() error {
 	const timeout = 5 * time.Second

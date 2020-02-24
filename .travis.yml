@@ -2,10 +2,14 @@ language: go
 
 go_import_path: autograder
 
+services:
+  - docker
+
 install:
   - export GOPATH="${TRAVIS_BUILD_DIR}/Godeps/_workspace:$GOPATH"
   - export PATH="${TRAVIS_BUILD_DIR}/Godeps/_workspace/bin:$PATH"
 
-script: make build
+script:
+  - make build
 
 

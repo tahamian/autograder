@@ -1,7 +1,7 @@
 package server
 
 import (
-
+	"errors"
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	"html/template"
@@ -9,23 +9,18 @@ import (
 	"net/http"
 	"os"
 	"strconv"
-	"time"
-	"errors"
 	"strings"
-
+	"time"
 )
-
 
 func del_file(id string) {
 	err := os.Remove("./files/" + id + ".py")
 	if err != nil {
 		log.WithFields(log.Fields{"Old File Name": "./files/", "New file Name": "./files/" + id + ".py"}).Info(
-			"There was an error when trying to Delete file after test was sucessful the file")
+			"There was an error when trying to Delete file after tests was sucessful the file")
 		return
 	}
 }
-
-
 
 func template_handler(w http.ResponseWriter, r *http.Request, errorname string, logging logerror) {
 	t, err := template.ParseFiles(config.TemplatePath + "/error.html")
@@ -51,19 +46,17 @@ func exists(path string) (bool, error) {
 	return true, err
 }
 
+func check_upload_file_extention(filename string, extentions []string) bool {
 
-func check_upload_file_extention(filename string, extentions []string) bool{
-
-	for _,value := range extentions {
+	for _, value := range extentions {
 		split := strings.Split(filename, ".")
-		if split[len(split) - 1]  == value{
+		if split[len(split)-1] == value {
 			return true
 		}
 	}
 
 	return false
 }
-
 
 func upload(w http.ResponseWriter, r *http.Request) {
 
@@ -103,7 +96,6 @@ func upload(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-
 		lab_num := r.Form.Get("labs")
 		if err != nil {
 			template_handler(w, r, "Could Not upload file", logerror{goError: err, errortype: err.Error(),
@@ -125,11 +117,10 @@ func upload(w http.ResponseWriter, r *http.Request) {
 
 		// Open the file create the file and then move it to the docker image
 
-
 		defer file.Close()
 		id := time.Now().Format("20060102150405") + strconv.Itoa(rand.Intn(1000))
 
-		f, err := os.OpenFile("./files/"+handler.Filename + id, os.O_WRONLY|os.O_CREATE, 0666)
+		f, err := os.OpenFile("./files/"+handler.Filename+id, os.O_WRONLY|os.O_CREATE, 0666)
 		if err != nil {
 			template_handler(w, r, "File did not load", logerror{goError: err, errortype: "",
 				info: "problem opening the file", oldFileName: "./files/" + handler.Filename,
@@ -140,7 +131,7 @@ func upload(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			err = f.Close()
 			if err != nil {
-				log.Info("Failed to close file %s", )
+				log.Info("Failed to close file %s")
 			}
 		}()
 
@@ -163,7 +154,7 @@ func upload(w http.ResponseWriter, r *http.Request) {
 		//	return
 		//}
 
-		// Run the test with the given parameter
+		// Run the tests with the given parameter
 		//cmd := exec.Command("python", "./scripts/main.py", "./files/"+id+".py", lab_num)
 		// Use a bytes.Buffer to get the output
 		//var buf bytes.Buffer
@@ -215,8 +206,7 @@ func upload(w http.ResponseWriter, r *http.Request) {
 		//Give back result
 		t, err := template.ParseFiles(config.TemplatePath + "/result.html")
 
-
-		err = t.Execute(w, "test")
+		err = t.Execute(w, "tests")
 		if err != nil {
 			log.WithFields(log.Fields{"Error": err}).Info("Template is missing")
 			return

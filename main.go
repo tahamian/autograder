@@ -3,12 +3,10 @@ package main
 import (
 	//"fmt"
 	"autograder/server"
+	log "github.com/sirupsen/logrus"
 	"os"
 	"os/signal"
-	log "github.com/sirupsen/logrus"
 )
-
-
 
 func main() {
 	htmlServer := server.StartServer("config.yaml")

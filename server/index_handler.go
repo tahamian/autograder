@@ -15,7 +15,6 @@ func handlemain(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-
 	t := template.Must(template.ParseFiles(config.TemplatePath + "/index.html"))
 	err := t.ExecuteTemplate(w, "index.html", config.Labs)
 	if err != nil {
