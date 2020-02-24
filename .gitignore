@@ -116,3 +116,5 @@ server/scripts/classlist.csv
 server/dump.rdb
 
 .vscode/*
+
+marker/.idea/*
