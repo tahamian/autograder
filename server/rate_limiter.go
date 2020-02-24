@@ -10,9 +10,9 @@ import (
 )
 
 type Redis struct {
-MaxRetry    int    `yaml:"max_retry"`
-RateLimiter string `yaml:"rate_limiter"`
-RedisServer string `yaml:"redis_server"`
+	MaxRetry    int    `yaml:"max_retry"`
+	RateLimiter string `yaml:"rate_limiter"`
+	RedisServer string `yaml:"redis_server"`
 }
 
 // TODO can make this a pointer
