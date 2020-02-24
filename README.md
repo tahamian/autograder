@@ -11,7 +11,7 @@ If a user submits malisious code it will be excecuted inside the container.
 ## Requirements to run
 
 - Docker installed
-- access to dockerhub image []
+- npm installed
 
 ## Run app
 

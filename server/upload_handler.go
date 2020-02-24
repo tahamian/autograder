@@ -20,7 +20,7 @@ func del_file(id string) {
 	err := os.Remove("./files/" + id + ".py")
 	if err != nil {
 		log.WithFields(log.Fields{"Old File Name": "./files/", "New file Name": "./files/" + id + ".py"}).Info(
-			"There was an error when trying to Delete file after test was sucessful the file")
+			"There was an error when trying to Delete file after tests was sucessful the file")
 		return
 	}
 }
@@ -163,7 +163,7 @@ func upload(w http.ResponseWriter, r *http.Request) {
 		//	return
 		//}
 
-		// Run the test with the given parameter
+		// Run the tests with the given parameter
 		//cmd := exec.Command("python", "./scripts/main.py", "./files/"+id+".py", lab_num)
 		// Use a bytes.Buffer to get the output
 		//var buf bytes.Buffer
@@ -216,7 +216,7 @@ func upload(w http.ResponseWriter, r *http.Request) {
 		t, err := template.ParseFiles(config.TemplatePath + "/result.html")
 
 
-		err = t.Execute(w, "test")
+		err = t.Execute(w, "tests")
 		if err != nil {
 			log.WithFields(log.Fields{"Error": err}).Info("Template is missing")
 			return
