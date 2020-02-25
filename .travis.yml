@@ -9,7 +9,6 @@ services:
   - docker
 
 before_install:
-  - pip install -U pip
   - pip install -U pytest
 
 install:
