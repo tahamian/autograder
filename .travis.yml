@@ -1,15 +1,24 @@
 language: go
 
+python:
+  - 3.8
+
 go_import_path: autograder
 
 services:
   - docker
 
+before_install:
+  - pip install -U pip
+  - pip install -U pytest
+
 install:
   - export GOPATH="${TRAVIS_BUILD_DIR}/Godeps/_workspace:$GOPATH"
   - export PATH="${TRAVIS_BUILD_DIR}/Godeps/_workspace/bin:$PATH"
+  - pip install -r marker/requirements.txt
 
 script:
   - make build
+  - pytest
 
 
