@@ -9,8 +9,8 @@ services:
   - docker
 
 before_install:
-  - pip install -U pytest --user
-  - pip install -r "${TRAVIS_BUILD_DIR}/marker/requirements.txt" --user
+  - pip3 install -U pytest --user
+  - pip3 install -r "${TRAVIS_BUILD_DIR}/marker/requirements.txt" --user
 
 install:
   - export GOPATH="${TRAVIS_BUILD_DIR}/Godeps/_workspace:$GOPATH"
