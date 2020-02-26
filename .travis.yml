@@ -1,31 +1,30 @@
-
 matrix:
   include:
 
     -
-    language: go
+      language: go
 
-        go_import_path: autograder
+      go_import_path: autograder
 
-        services:
-          - docker
+      services:
+        - docker
 
-        install:
-          - export GOPATH="${TRAVIS_BUILD_DIR}/Godeps/_workspace:$GOPATH"
-          - export PATH="${TRAVIS_BUILD_DIR}/Godeps/_workspace/bin:$PATH"
+      install:
+        - export GOPATH="${TRAVIS_BUILD_DIR}/Godeps/_workspace:$GOPATH"
+        - export PATH="${TRAVIS_BUILD_DIR}/Godeps/_workspace/bin:$PATH"
 
-        script:
-          - make build
+      script:
+        - make build
 
-  -
-    language: python
+    -
+      language: python
 
-    python:
-      - 3.7.1
+      python:
+        - 3.7.1
 
-    before_install:
-      - pip install -U pytest --user
-      - pip install -r "${TRAVIS_BUILD_DIR}/marker/requirements.txt" --user
+      before_install:
+        - pip install -U pytest --user
+        - pip install -r "${TRAVIS_BUILD_DIR}/marker/requirements.txt" --user
 
-    script:
-      - pytest
+      script:
+        - pytest
