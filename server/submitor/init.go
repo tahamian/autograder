@@ -69,7 +69,7 @@ func BuildImage(imageName string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-
+	// this function
 	defer func() {
 		err = dockerBuildContext.Close()
 		if err != nil {
