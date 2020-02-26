@@ -10,6 +10,7 @@ services:
 
 before_install:
   - pip install -U pytest --user
+  - pwd
   - pip install -r marker/requirements.txt --user
 
 install:
