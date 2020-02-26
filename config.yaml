@@ -18,6 +18,27 @@ labs:
               - "Hello world"
               - "hello world"
         type: stdout
+  -
+    id: lab_2
+    name: Lab 2 - Pythogrean Theorm
+    problem_statement: |
+      Write a function called pythgoeran(a,b) that takes 2 inputs a, and b which are 2 sides of a
+      right angle triangle \n returns the hypotenuse c of the triangle
+
+    testcase:
+      -
+        type: function
+        input:
+          - 3
+          - 4
+        expected:
+          -
+            feedback: Nice
+            points: 1.0
+            values:
+              - 5.0
+
+
 
 log_dir: logs/
 read_timeout: 5

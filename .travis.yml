@@ -10,11 +10,11 @@ services:
 
 before_install:
   - pip install -U pytest --user
+  - pip install -r marker/requirements.txt --user
 
 install:
   - export GOPATH="${TRAVIS_BUILD_DIR}/Godeps/_workspace:$GOPATH"
   - export PATH="${TRAVIS_BUILD_DIR}/Godeps/_workspace/bin:$PATH"
-  - pip install -r marker/requirements.txt --user
 
 script:
   - make build
