@@ -10,8 +10,7 @@ services:
 
 before_install:
   - pip install -U pytest --user
-  - pwd
-  - pip install -r marker/requirements.txt --user
+  - pip install -r "${TRAVIS_BUILD_DIR}/marker/requirements.txt" --user
 
 install:
   - export GOPATH="${TRAVIS_BUILD_DIR}/Godeps/_workspace:$GOPATH"
