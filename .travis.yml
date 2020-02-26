@@ -29,4 +29,3 @@ matrix:
 
     script:
       - pytest
-      
