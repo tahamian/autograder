@@ -2,14 +2,23 @@ package submitor
 
 import (
 	"context"
+	"fmt"
 	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/archive"
 	"github.com/mitchellh/go-homedir"
-	//"log"
 	log "github.com/sirupsen/logrus"
 	"strings"
 )
+
+type ProgramSpec struct {
+}
+
+func createContainer() {
+
+}
 
 func stringInSlice(a string, list []string) bool {
 
@@ -81,4 +90,67 @@ func BuildImage(imageName string) {
 			log.Fatal(err)
 		}
 	}()
+}
+
+type FunctionType string
+
+const (
+	String  FunctionType = "str"
+	Int     FunctionType = "int"
+	Float   FunctionType = "float"
+	Complex FunctionType = "complex"
+	List    FunctionType = "list"
+	Dict    FunctionType = "dict"
+)
+
+type SubmitPayload struct {
+	Filename  string `json:"filename"`
+	Stdout    bool   `json:"stdout"`
+	Functions []struct {
+		FunctionName string `json:"function_name"`
+		FunctionArgs []struct {
+			Type  string `json:"type"`
+			Value string `json:"value"`
+		} `json:"function_args"`
+	} `json:"functions"`
+}
+
+type Output struct {
+	Output struct {
+		Stdout    string `json:"stdout"`
+		Functions []struct {
+			Output string `json:"output"`
+		} `json:"functions"`
+	} `json:"output"`
+}
+
+func CreateContainer(imageName string, containerName string, bindedDir string, command []string) {
+	ctx := context.Background()
+	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	res, err := cli.ContainerCreate(ctx,
+		&container.Config{
+			Image: imageName,
+			Cmd:   command,
+		},
+		&container.HostConfig{
+			Mounts: []mount.Mount{
+				{
+					Type:   mount.TypeBind,
+					Source: bindedDir,
+					Target: "/input",
+				},
+			},
+		}, nil, containerName)
+
+	if err != nil {
+		log.Info("failed to create container")
+		log.Fatal(err)
+	}
+
+	fmt.Println(res)
+
 }

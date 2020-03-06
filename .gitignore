@@ -118,3 +118,5 @@ server/dump.rdb
 .vscode/*
 
 marker/.idea/*
+marker/.pytest_cache/
+.pytest_cache/

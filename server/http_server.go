@@ -87,7 +87,7 @@ func StartServer(config_path string) *HTMLServer {
 
 	config.getConf(config_path)
 
-	go submitor.BuildImage("autograder")
+	submitor.BuildImage("autograder")
 
 	store, rate := initalize_redis(config.Redis)
 	middleware := stdlib.NewMiddleware(limiter.New(store, rate))

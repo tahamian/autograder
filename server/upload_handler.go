@@ -1,8 +1,8 @@
 package server
 
 import (
+	"autograder/server/submitor"
 	"errors"
-	"fmt"
 	log "github.com/sirupsen/logrus"
 	"html/template"
 	"math/rand"
@@ -48,15 +48,24 @@ func exists(path string) (bool, error) {
 
 func check_upload_file_extention(filename string, extentions []string) bool {
 
+	log.Info("file name %v", filename)
+	log.Info("file excepted extionstions", extentions)
+
 	for _, value := range extentions {
 		split := strings.Split(filename, ".")
+
+		log.Info(split)
+		log.Info("VALUE ->>>  ", value)
 		if split[len(split)-1] == value {
+
 			return true
 		}
 	}
 
 	return false
 }
+
+// uploading a file only excepts py files once submitted uses
 
 func upload(w http.ResponseWriter, r *http.Request) {
 
@@ -104,12 +113,12 @@ func upload(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		fmt.Println(lab_num)
+		log.Info(lab_num)
 
 		// looks for .py files or other files
-		if check_upload_file_extention(handler.Filename, []string{"py"}) {
+		if !check_upload_file_extention(handler.Filename, []string{"py"}) {
 			template_handler(w, r, "Have to upload a python script",
-				logerror{goError: errors.New("can't work with 42"), errortype: "",
+				logerror{goError: errors.New("can't work with"), errortype: "FileExtention",
 					info: "File extention was incorrect", oldFileName: "./files/" + handler.Filename,
 					newFileName: "./files/" + ".py"})
 			return
@@ -119,8 +128,9 @@ func upload(w http.ResponseWriter, r *http.Request) {
 
 		defer file.Close()
 		id := time.Now().Format("20060102150405") + strconv.Itoa(rand.Intn(1000))
+		log.Info(id)
+		f, err := os.OpenFile("./files/"+handler.Filename, os.O_WRONLY|os.O_CREATE, 0666)
 
-		f, err := os.OpenFile("./files/"+handler.Filename+id, os.O_WRONLY|os.O_CREATE, 0666)
 		if err != nil {
 			template_handler(w, r, "File did not load", logerror{goError: err, errortype: "",
 				info: "problem opening the file", oldFileName: "./files/" + handler.Filename,
@@ -135,6 +145,10 @@ func upload(w http.ResponseWriter, r *http.Request) {
 			}
 		}()
 
+		// need to bind dir
+		command = []string{"python", ""}
+		//var a = submitor.SubmitPayload{}
+		submitor.CreateContainer("autograder", id, "./files/", command)
 		//_, err = io.Copy(f, file)
 		//if err != nil {
 		//	template_handler(w, r, "Internal Server Error", (logerror{goError: err, errortype: "",

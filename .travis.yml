@@ -8,6 +8,10 @@ matrix:
 
       services:
         - docker
+        - redis
+
+      before_script:
+        - sudo redis-server --port 6379
 
       install:
         - export GOPATH="${TRAVIS_BUILD_DIR}/Godeps/_workspace:$GOPATH"

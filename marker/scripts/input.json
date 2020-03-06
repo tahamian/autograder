@@ -1,0 +1,15 @@
+{
+  "filename": "scripts/test.py",
+  "stdout": true,
+  "functions" : [
+    {
+      "function_name": "hello",
+      "function_args": [
+        {
+          "type" : "int",
+          "value": "1"
+        }
+      ]
+    }
+  ]
+}
