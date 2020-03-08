@@ -62,13 +62,16 @@ transform: translate(-50%, -50%);
         <option value="{{$val.ID}}" desc="{{$val.ProblemStatement}}">{{$val.Name}}</option>
         {{end}}
       </select>
-      <label class="custom-file" style="margin-top: 10px; margin-bottom: 10px;">
-      <input type="file" name="uploadfile" id="file" accept=".py" class="custom-file-input" />
+      <br />
+      <div class="input-group">
+      <input type="file" name="uploadfile" id="file" accept=".py" class="form-control-file" />
       <span class="custom-file-control"></span>
-      </label>
-
+        </div>
 
     </form>
+
+    <br />
+
     <div class="alert alert-warning">
       <h5>
         Problem Statement

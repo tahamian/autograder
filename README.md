@@ -54,6 +54,21 @@ go get -d autograder
 go run main.go
 ```
 
+##### Installing js libraries
+
+```$xslt
+These are js libraries for the ui
+
+# install gulp
+npm install gulp --save-dev
+
+
+# install bower
+npm install -g bower
+
+# run in project dir
+gulp
+```
 
 ## Run Tests
 

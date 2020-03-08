@@ -1,15 +1,34 @@
-language: go
+matrix:
+  include:
 
-go_import_path: autograder
+    -
+      language: go
 
-services:
-  - docker
+      go_import_path: autograder
 
-install:
-  - export GOPATH="${TRAVIS_BUILD_DIR}/Godeps/_workspace:$GOPATH"
-  - export PATH="${TRAVIS_BUILD_DIR}/Godeps/_workspace/bin:$PATH"
+      services:
+        - docker
+        - redis
 
-script:
-  - make build
+      before_script:
+        - sudo redis-server --port 6379
 
+      install:
+        - export GOPATH="${TRAVIS_BUILD_DIR}/Godeps/_workspace:$GOPATH"
+        - export PATH="${TRAVIS_BUILD_DIR}/Godeps/_workspace/bin:$PATH"
 
+      script:
+        - make build
+
+    -
+      language: python
+
+      python:
+        - 3.7.1
+
+      before_install:
+        - pip install -U pytest
+        - pip install -r "${TRAVIS_BUILD_DIR}/marker/requirements.txt"
+
+      script:
+        - pytest
