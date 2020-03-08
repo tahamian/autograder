@@ -122,7 +122,9 @@ marker/.pytest_cache/
 .pytest_cache/
 
 bower_components/
-node_modules/
+node_modules/`
 package-lock.json
 dump.rdb
 .idea/
+
+files/*
