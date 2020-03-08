@@ -1,66 +1,53 @@
 package server
 
 import (
-	//"autograder/submitor"
+	"autograder/server/handlers"
+	//"autograder/server/handler"
+	"autograder/server/submitor"
 	"context"
-	"fmt"
 	"github.com/gorilla/mux"
-
 	log "github.com/sirupsen/logrus"
 	"github.com/ulule/limiter"
 	"github.com/ulule/limiter/drivers/middleware/stdlib"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"net/http"
-	//"strings"
-	"autograder/server/submitor"
 	"sync"
 	"time"
 )
 
 type ConfigServer struct {
-	BaseDir        string `yaml:"base_dir"`
-	DockerfilePath string `yaml:"dockerfile_path"`
-	Host           string `yaml:"host"`
-	Labs           []struct {
-		Name             string `yaml:"name"`
-		ID               string `yaml:"id"`
-		ProblemStatement string `yaml:"problem_statement"`
-		Testcase         []struct {
-			Expected []struct {
-				Feedback string   `yaml:"feedback"`
-				Points   float64  `yaml:"points"`
-				Values   []string `yaml:"values"`
-			} `yaml:"expected"`
-			Type   string   `yaml:"type"`
-			Inputs []string `yaml:"inputs"`
-		} `yaml:"testcase"`
-	} `yaml:"labs"`
-	LogDir       string `yaml:"log_dir"`
-	ReadTimeout  int    `yaml:"read_timeout"`
-	Redis        Redis  `yaml:"redis"`
-	ServerPort   string `yaml:"server_port"`
-	TemplatePath string `yaml:"template_path"`
-	TestCasePath string `yaml:"test_case_path"`
-	WriteTimeout int    `yaml:"write_timeout"`
+	Labs         []handlers.Lab  `yaml:"labs"`
+	Redis        Redis           `yaml:"redis"`
+	ServerConfig ServerConfig    `yaml:"server"`
+	Logging      LogConfig       `yaml:"logging"`
+	Marker       handlers.Marker `yaml:"marker"`
 }
 
-type logerror struct {
-	goError     error
-	errortype   string
-	info        string
-	oldFileName string
-	newFileName string
+type ServerConfig struct {
+	ServerPort   string `yaml:"server_port"`
+	Host         string `yaml:"host"`
+	WriteTimeout int32  `yaml:"write_timeout"`
+	ReadTimeout  int32  `yaml:"read_timeout"`
+	TemplatePath string `yaml:"template_path"`
+}
+
+type LogConfig struct {
+	LogDir   string `yaml:"log_dir"`
+	LogLevel string `yaml:"log_level"`
+}
+
+type LogHTTPSever struct {
+	server_status string
+	message       string
+	error         string
+	error_type    string
 }
 
 var config = create_config()
 
 func create_config() ConfigServer {
 	c := ConfigServer{}
-
-	c.TemplatePath = "./templates"
-	c.LogDir = "./logs"
-	c.BaseDir = "./"
 
 	c.Redis.MaxRetry = 3
 	c.Redis.RedisServer = "0.0.0.0:6738"
@@ -83,30 +70,31 @@ func (c *ConfigServer) getConf(path string) *ConfigServer {
 }
 
 // Initializes the server builds marker docker image and
+// TODO
 func StartServer(config_path string) *HTMLServer {
 
 	config.getConf(config_path)
+	//log.Info("Creating docker image .....")
 
-	submitor.BuildImage("autograder")
+	// make this a go func
+	submitor.BuildImage(config.Marker.ImageName)
 
 	store, rate := initalize_redis(config.Redis)
 	middleware := stdlib.NewMiddleware(limiter.New(store, rate))
 
-	//_, cancel := context.WithCancel(context.Background())
-	//defer cancel()
 	router := mux.NewRouter()
 
-	router.Handle("/", middleware.Handler(http.HandlerFunc(handlemain)))
+	router.Handle("/", middleware.Handler(http.HandlerFunc(indexHander)))
 	router.HandleFunc("/upload", upload)
 	router.PathPrefix("/js/").Handler(http.StripPrefix("/js/", http.FileServer(http.Dir("./templates/js/"))))
 	router.PathPrefix("/css/").Handler(http.StripPrefix("/css/", http.FileServer(http.Dir("./templates/css/"))))
 
 	htmlServer := HTMLServer{
 		server: &http.Server{
-			Addr:           config.Host + ":" + config.ServerPort,
+			Addr:           config.ServerConfig.Host + ":" + config.ServerConfig.ServerPort,
 			Handler:        router,
-			ReadTimeout:    time.Second * 5,
-			WriteTimeout:   time.Second * 5,
+			ReadTimeout:    time.Second * time.Duration(config.ServerConfig.ReadTimeout),
+			WriteTimeout:   time.Second * time.Duration(config.ServerConfig.WriteTimeout),
 			MaxHeaderBytes: 1 << 20,
 		},
 	}
@@ -114,7 +102,7 @@ func StartServer(config_path string) *HTMLServer {
 	htmlServer.wg.Add(1)
 
 	go func() {
-		log.Info("HTMLServer : Service started : Host=", config.Host, ":", config.ServerPort)
+		log.Info("HTMLServer : Service started : Host=", config.ServerConfig.Host, ":", config.ServerConfig.ServerPort)
 		err := htmlServer.server.ListenAndServe()
 		if err != nil {
 			log.Info("HTTP server failed to start ", err)
@@ -130,7 +118,7 @@ func (htmlServer *HTMLServer) Stop() error {
 	const timeout = 5 * time.Second
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	fmt.Printf("\nHTMLServer : Service stopping\n")
+	//fmt.Printf("\nHTMLServer : Service stopping\n")
 	if err := htmlServer.server.Shutdown(ctx); err != nil {
 		if err := htmlServer.server.Close(); err != nil {
 			log.Info("HTMLServer : Service stopping : Error=", err)
@@ -145,4 +133,12 @@ func (htmlServer *HTMLServer) Stop() error {
 type HTMLServer struct {
 	server *http.Server
 	wg     sync.WaitGroup
+}
+
+func indexHander(w http.ResponseWriter, r *http.Request) {
+	handlers.Handlemain(w, r, config.ServerConfig.TemplatePath, config.Labs)
+}
+
+func upload(w http.ResponseWriter, r *http.Request) {
+	handlers.Upload(w, r, config.ServerConfig.TemplatePath, config.Marker)
 }

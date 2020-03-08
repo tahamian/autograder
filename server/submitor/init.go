@@ -1,5 +1,7 @@
 package submitor
 
+// TODO add json logging
+
 import (
 	"context"
 	"fmt"
@@ -13,13 +15,6 @@ import (
 	"strings"
 )
 
-type ProgramSpec struct {
-}
-
-func createContainer() {
-
-}
-
 func stringInSlice(a string, list []string) bool {
 
 	for _, b := range list {
@@ -31,12 +26,18 @@ func stringInSlice(a string, list []string) bool {
 	return false
 }
 
+type ImageBuildLog struct {
+	ImageName string
+	Error     string
+}
+
 func BuildImage(imageName string) {
 
 	//imageName := "autograder"
 
 	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -69,6 +70,13 @@ func BuildImage(imageName string) {
 	filePath, _ := homedir.Expand("marker")
 	dockerBuildContext, _ := archive.TarWithOptions(filePath, &archive.TarOptions{})
 
+	defer func() {
+		err = dockerBuildContext.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}()
+
 	buildOptions := types.ImageBuildOptions{
 		Dockerfile: "Dockerfile",
 		Tags:       []string{imageName},
@@ -78,18 +86,14 @@ func BuildImage(imageName string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	// this function
-	defer func() {
-		err = dockerBuildContext.Close()
-		if err != nil {
-			log.Fatal(err)
-		}
 
+	defer func() {
 		err = buildResponse.Body.Close()
 		if err != nil {
 			log.Fatal(err)
 		}
 	}()
+
 }
 
 type FunctionType string
@@ -148,7 +152,7 @@ func CreateContainer(imageName string, containerName string, bindedDir string, c
 
 	if err != nil {
 		log.Info("failed to create container")
-		log.Fatal(err)
+		//log.Fatal(err)
 	}
 
 	fmt.Println(res)

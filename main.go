@@ -15,6 +15,6 @@ func main() {
 	signal.Notify(sigChan, os.Interrupt)
 	<-sigChan
 
-	log.Info("Stopping : autograder")
+	log.WithFields(log.Fields{"SEVER_STATUS": "STOP", "MESSAGE": "HTMLServer : Stopped"}).Info()
 
 }

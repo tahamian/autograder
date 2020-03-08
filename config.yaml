@@ -52,6 +52,7 @@ server:
   template_path: ./templates
 
 marker:
+  image_name: autograder
   dockerfile_path: marker/Dockerfile
   submissions_folder: ./files
   mount_path: /input
