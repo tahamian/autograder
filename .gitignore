@@ -121,10 +121,10 @@ marker/.idea/*
 marker/.pytest_cache/
 .pytest_cache/
 
-bower_components/
-node_modules/`
+bower_components/*
+node_modules/*
 package-lock.json
 dump.rdb
-.idea/
+.idea/*
 
 files/*
