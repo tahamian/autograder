@@ -1,2 +1,1 @@
 Click==7.0
-modulefinder==0.2
