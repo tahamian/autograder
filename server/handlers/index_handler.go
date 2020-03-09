@@ -1,10 +1,12 @@
 package handlers
 
 import (
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"html/template"
 	"net/http"
 )
+
+var log = logrus.New()
 
 type Lab struct {
 	Name             string `yaml:"name"`
@@ -41,7 +43,11 @@ func Handlemain(w http.ResponseWriter, r *http.Request, template_path string, la
 	t := template.Must(template.ParseFiles(template_path + "/index.html"))
 	err := t.ExecuteTemplate(w, "index.html", labs)
 	if err != nil {
-		log.WithFields(log.Fields{"Error": err}).Info("Template is missing")
+		log.WithFields(logrus.Fields{"Error": err}).Info("Template is missing")
 		return
 	}
+}
+
+func SetLogger(logger *logrus.Logger) {
+	log = logger
 }

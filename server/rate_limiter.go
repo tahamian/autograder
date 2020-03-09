@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/go-redis/redis"
-	log "github.com/sirupsen/logrus"
+	//log "github.com/sirupsen/logrus"
 	"github.com/ulule/limiter"
 	sredis "github.com/ulule/limiter/drivers/store/redis"
 )

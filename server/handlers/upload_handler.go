@@ -3,7 +3,7 @@ package handlers
 import (
 	"autograder/server/submitor"
 	"errors"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"html/template"
 	"math/rand"
 	"net/http"
@@ -24,7 +24,7 @@ type Marker struct {
 func del_file(id string) {
 	err := os.Remove("./files/" + id + ".py")
 	if err != nil {
-		log.WithFields(log.Fields{"Old File Name": "./files/", "New file Name": "./files/" + id + ".py"}).Info(
+		log.WithFields(logrus.Fields{"Old File Name": "./files/", "New file Name": "./files/" + id + ".py"}).Info(
 			"There was an error when trying to Delete file after tests was sucessful the file")
 		return
 	}
@@ -35,10 +35,10 @@ func template_handler(w http.ResponseWriter, r *http.Request, errorname string, 
 	t, err := template.ParseFiles(template_path + "/error.html")
 	err = t.Execute(w, errorname)
 	if err != nil {
-		log.WithFields(log.Fields{"Error": err}).Info("Template is missing")
+		log.WithFields(logrus.Fields{"Error": err}).Info("Template is missing")
 		return
 	}
-	log.WithFields(log.Fields{"Error": logging.goError, "Old File Name": logging.oldFileName,
+	log.WithFields(logrus.Fields{"Error": logging.goError, "Old File Name": logging.oldFileName,
 		"New File Name": logging.newFileName, "Error Type": logging.errortype}).Info(logging.info)
 	return
 }
@@ -74,34 +74,31 @@ func check_upload_file_extention(filename string, extentions []string) bool {
 	return false
 }
 
-// uploading a file only excepts py files once submitted uses
-
 func Upload(w http.ResponseWriter, r *http.Request, template_path string, marking_config Marker) {
 
-	log.Info("Got request")
+	//log.Info("Got request")
 
 	if r.URL.Path != "/upload" {
 		http.NotFound(w, r)
 		return
 	}
+
 	if r.Method == "GET" {
 		log.Info(w, "404 page not found")
 	} else {
-		// Set max file size
+
 		r.Body = http.MaxBytesReader(w, r.Body, 20*1024)
 		err := r.ParseMultipartForm(20)
 		if err != nil {
-			template_handler(w, r, err.Error(), (logerror{goError: err, errortype: "", info: "File size is too big",
-				oldFileName: "./files/", newFileName: "./files/" + ".py"}), template_path)
+			errMsg := logerror{goError: err, errortype: err.Error(), info: "File size is too big"}
+			template_handler(w, r, err.Error(), errMsg, template_path)
 			return
 		}
 
-		//Handle the file
 		file, handler, err := r.FormFile("uploadfile")
 		if err != nil {
-			template_handler(w, r, "Could Not upload file", (logerror{goError: err, errortype: err.Error(),
-				info: "Could not get file from post request", oldFileName: "./files/",
-				newFileName: "./files/" + ".py"}), template_path)
+			errMsg := logerror{goError: err, errortype: err.Error(), info: "Could not get file from post request"}
+			template_handler(w, r, "Could Not upload file", errMsg, template_path)
 			return
 		}
 
@@ -155,9 +152,10 @@ func Upload(w http.ResponseWriter, r *http.Request, template_path string, markin
 		}()
 
 		// need to bind dir
-		command := []string{"marker"}
+		//command := []string{"marker"}
 		//var a = submitor.SubmitPayload{}
-		submitor.CreateContainer(marking_config.ImageName, id, "./files/", command)
+		var a = &submitor.Submission{}
+		submitor.CreateContainer(a)
 		//_, err = io.Copy(f, file)
 		//if err != nil {
 		//	template_handler(w, r, "Internal Server Error", (logerror{goError: err, errortype: "",
@@ -231,7 +229,7 @@ func Upload(w http.ResponseWriter, r *http.Request, template_path string, markin
 
 		err = t.Execute(w, "tests")
 		if err != nil {
-			log.WithFields(log.Fields{"Error": err}).Info("Template is missing")
+			log.WithFields(logrus.Fields{"Error": err}).Info("Template is missing")
 			return
 		}
 

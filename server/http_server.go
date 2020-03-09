@@ -6,7 +6,7 @@ import (
 	"autograder/server/submitor"
 	"context"
 	"github.com/gorilla/mux"
-	log "github.com/sirupsen/logrus"
+
 	"github.com/ulule/limiter"
 	"github.com/ulule/limiter/drivers/middleware/stdlib"
 	"gopkg.in/yaml.v2"
