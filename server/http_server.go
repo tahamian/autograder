@@ -77,6 +77,7 @@ func StartServer(config_path string) *HTMLServer {
 	//log.Info("Creating docker image .....")
 
 	// make this a go func
+	//log.Info(config.Marker.ImageName)
 	submitor.BuildImage(config.Marker.ImageName)
 
 	store, rate := initalize_redis(config.Redis)

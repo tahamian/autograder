@@ -8,7 +8,10 @@ import (
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/archive"
 	"github.com/mitchellh/go-homedir"
-	log "github.com/sirupsen/logrus"
+	"io/ioutil"
+
+	//log "github.com/sirupsen/logrus"
+	"fmt"
 	"strings"
 )
 
@@ -30,8 +33,6 @@ type ImageBuildLog struct {
 
 func BuildImage(imageName string) {
 
-	//imageName := "autograder"
-
 	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 
@@ -44,10 +45,11 @@ func BuildImage(imageName string) {
 	}
 
 	images, err := cli.ImageList(ctx, filter)
-
 	if err != nil {
 		log.Fatal("Could not list docker images %v", err)
 	}
+
+	log.Info(images)
 
 	for i := range images {
 		if stringInSlice(imageName, images[i].RepoTags) {
@@ -64,32 +66,43 @@ func BuildImage(imageName string) {
 		}
 	}
 
-	filePath, _ := homedir.Expand("marker")
-	dockerBuildContext, _ := archive.TarWithOptions(filePath, &archive.TarOptions{})
+	filePath, err := homedir.Expand("marker")
+	if err != nil {
+		log.Fatal("failed to expand file path ")
+	}
 
-	defer func() {
-		err = dockerBuildContext.Close()
-		if err != nil {
-			log.Fatal(err)
-		}
-	}()
+	dockerBuildContext, err := archive.TarWithOptions(filePath, &archive.TarOptions{})
+	defer dockerBuildContext.Close()
+	if err != nil {
+		log.Fatal("Unable to create docker context")
+	}
 
 	buildOptions := types.ImageBuildOptions{
 		Dockerfile: "Dockerfile",
 		Tags:       []string{imageName},
+		//PullParent:     true,
+		//SuppressOutput: false,
 	}
 
 	buildResponse, err := cli.ImageBuild(ctx, dockerBuildContext, buildOptions)
+	defer buildResponse.Body.Close()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	defer func() {
-		err = buildResponse.Body.Close()
-		if err != nil {
-			log.Fatal(err)
-		}
-	}()
+	//log.Info(buildResponse.Body)
+	//log.Info(buildResponse.OSType)
+	fmt.Printf("********* %s **********", buildResponse.OSType)
+	response, err := ioutil.ReadAll(buildResponse.Body)
+	if err != nil {
+		fmt.Printf("%s", err.Error())
+	}
+	fmt.Println(string(response))
+	//defer func() {
+
+	//
+
+	//}()
 
 }
 

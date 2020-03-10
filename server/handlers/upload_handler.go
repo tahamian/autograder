@@ -154,7 +154,13 @@ func Upload(w http.ResponseWriter, r *http.Request, template_path string, markin
 		// need to bind dir
 		//command := []string{"marker"}
 		//var a = submitor.SubmitPayload{}
-		var a = &submitor.Submission{}
+		var a = &submitor.Submission{
+			ContainerName: "autograder",
+			ImageName:     marking_config.ImageName,
+			TargetDir:     "/input",
+			Command:       []string{marking_config.Command},
+			BindedDir:     marking_config.MountPath,
+		}
 		submitor.CreateContainer(a)
 		//_, err = io.Copy(f, file)
 		//if err != nil {
