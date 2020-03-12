@@ -4,6 +4,7 @@ package submitor
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/archive"
@@ -49,7 +50,7 @@ func BuildImage(imageName string) {
 		log.Fatal("Could not list docker images %v", err)
 	}
 
-	log.Info(images)
+	//log.Info(images)
 
 	for i := range images {
 		if stringInSlice(imageName, images[i].RepoTags) {
@@ -80,8 +81,6 @@ func BuildImage(imageName string) {
 	buildOptions := types.ImageBuildOptions{
 		Dockerfile: "Dockerfile",
 		Tags:       []string{imageName},
-		//PullParent:     true,
-		//SuppressOutput: false,
 	}
 
 	buildResponse, err := cli.ImageBuild(ctx, dockerBuildContext, buildOptions)
@@ -90,14 +89,20 @@ func BuildImage(imageName string) {
 		log.Fatal(err)
 	}
 
-	//log.Info(buildResponse.Body)
-	//log.Info(buildResponse.OSType)
-	fmt.Printf("********* %s **********", buildResponse.OSType)
 	response, err := ioutil.ReadAll(buildResponse.Body)
 	if err != nil {
 		fmt.Printf("%s", err.Error())
 	}
-	fmt.Println(string(response))
+
+	var data map[string]interface{}
+
+	if err := json.Unmarshal(response, &data); err != nil {
+		log.Info("Failed to parse")
+		log.Info(err)
+	}
+
+	fmt.Println(data)
+
 	//defer func() {
 
 	//

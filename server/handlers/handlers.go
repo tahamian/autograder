@@ -13,70 +13,60 @@ import (
 	"time"
 )
 
-type Marker struct {
-	DockerfilePath       string `yaml:"dockerfile_path"`
-	SubmissionFolderPath string `yaml:"submissions_folder"`
-	MountPath            string `yaml:"mount_path"`
-	Command              string `yaml:"command"`
-	ImageName            string `yaml:"image_name"`
+var log = logrus.New()
+
+type Lab struct {
+	Name             string `yaml:"name"`
+	ID               string `yaml:"id"`
+	ProblemStatement string `yaml:"problem_statement"`
+	Testcase         []struct {
+		Expected []struct {
+			Feedback string   `yaml:"feedback"`
+			Points   float64  `yaml:"points"`
+			Values   []string `yaml:"values"`
+		} `yaml:"expected"`
+		Type   string   `yaml:"type"`
+		Inputs []string `yaml:"inputs"`
+	} `yaml:"testcase"`
 }
 
-func del_file(id string) {
-	err := os.Remove("./files/" + id + ".py")
+type logerror struct {
+	goError     error
+	errortype   string
+	info        string
+	oldFileName string
+	newFileName string
+}
+
+type HandlerFunc interface {
+	HandleIndex(w http.ResponseWriter, r *http.Request)
+	Upload(w http.ResponseWriter, r *http.Request)
+}
+
+type Handler struct {
+	Template_path string
+	Marker        Marker
+	Labs          []Lab
+}
+
+func (h *Handler) HandleIndex(w http.ResponseWriter, r *http.Request) {
+
+	log.Info("Got request")
+
+	if r.URL.Path != "/" {
+		http.NotFound(w, r)
+		return
+	}
+
+	t := template.Must(template.ParseFiles(h.Template_path + "/index.html"))
+	err := t.ExecuteTemplate(w, "index.html", h.Labs)
 	if err != nil {
-		log.WithFields(logrus.Fields{"Old File Name": "./files/", "New file Name": "./files/" + id + ".py"}).Info(
-			"There was an error when trying to Delete file after tests was sucessful the file")
+		log.WithFields(logrus.Fields{"Error": err}).Info("Template Does not exisit")
 		return
 	}
 }
 
-func template_handler(w http.ResponseWriter, r *http.Request, errorname string, logging logerror,
-	template_path string) {
-	t, err := template.ParseFiles(template_path + "/error.html")
-	err = t.Execute(w, errorname)
-	if err != nil {
-		log.WithFields(logrus.Fields{"Error": err}).Info("Template is missing")
-		return
-	}
-	log.WithFields(logrus.Fields{"Error": logging.goError, "Old File Name": logging.oldFileName,
-		"New File Name": logging.newFileName, "Error Type": logging.errortype}).Info(logging.info)
-	return
-}
-
-// Checks if file exists
-func exists(path string) (bool, error) {
-	_, err := os.Stat(path)
-	if err == nil {
-		return true, nil
-	}
-	if os.IsNotExist(err) {
-		return false, nil
-	}
-	return true, err
-}
-
-func check_upload_file_extention(filename string, extentions []string) bool {
-
-	log.Info("file name %v", filename)
-	log.Info("file excepted extionstions", extentions)
-
-	for _, value := range extentions {
-		split := strings.Split(filename, ".")
-
-		log.Info(split)
-		log.Info("VALUE ->>>  ", value)
-		if split[len(split)-1] == value {
-
-			return true
-		}
-	}
-
-	return false
-}
-
-func Upload(w http.ResponseWriter, r *http.Request, template_path string, marking_config Marker) {
-
-	//log.Info("Got request")
+func (h *Handler) Upload(w http.ResponseWriter, r *http.Request) {
 
 	if r.URL.Path != "/upload" {
 		http.NotFound(w, r)
@@ -85,20 +75,21 @@ func Upload(w http.ResponseWriter, r *http.Request, template_path string, markin
 
 	if r.Method == "GET" {
 		log.Info(w, "404 page not found")
+		http.NotFound(w, r)
 	} else {
 
 		r.Body = http.MaxBytesReader(w, r.Body, 20*1024)
 		err := r.ParseMultipartForm(20)
 		if err != nil {
 			errMsg := logerror{goError: err, errortype: err.Error(), info: "File size is too big"}
-			template_handler(w, r, err.Error(), errMsg, template_path)
+			template_handler(w, r, err.Error(), errMsg, h.Template_path)
 			return
 		}
 
 		file, handler, err := r.FormFile("uploadfile")
 		if err != nil {
 			errMsg := logerror{goError: err, errortype: err.Error(), info: "Could not get file from post request"}
-			template_handler(w, r, "Could Not upload file", errMsg, template_path)
+			template_handler(w, r, "Could Not upload file", errMsg, h.Template_path)
 			return
 		}
 
@@ -107,7 +98,7 @@ func Upload(w http.ResponseWriter, r *http.Request, template_path string, markin
 		if err != nil {
 			template_handler(w, r, "Could Not Parse form", (logerror{goError: err, errortype: err.Error(),
 				info: "Could not Parse form from post request", oldFileName: "./files/",
-				newFileName: "./files/" + ".py"}), template_path)
+				newFileName: "./files/" + ".py"}), h.Template_path)
 			return
 		}
 
@@ -115,7 +106,7 @@ func Upload(w http.ResponseWriter, r *http.Request, template_path string, markin
 		if err != nil {
 			template_handler(w, r, "Could Not upload file", logerror{goError: err, errortype: err.Error(),
 				info: "could not get lab number from post request", oldFileName: "./files/" + handler.Filename,
-				newFileName: "./files/" + ".py"}, template_path)
+				newFileName: "./files/" + ".py"}, h.Template_path)
 			return
 		}
 
@@ -126,7 +117,7 @@ func Upload(w http.ResponseWriter, r *http.Request, template_path string, markin
 			template_handler(w, r, "Have to upload a python script",
 				logerror{goError: errors.New("can't work with"), errortype: "FileExtention",
 					info: "File extention was incorrect", oldFileName: "./files/" + handler.Filename,
-					newFileName: "./files/" + ".py"}, template_path)
+					newFileName: "./files/" + ".py"}, h.Template_path)
 			return
 		}
 
@@ -140,14 +131,14 @@ func Upload(w http.ResponseWriter, r *http.Request, template_path string, markin
 		if err != nil {
 			template_handler(w, r, "File did not load", logerror{goError: err, errortype: "",
 				info: "problem opening the file", oldFileName: "./files/" + handler.Filename,
-				newFileName: "./files/" + ".py"}, template_path)
+				newFileName: "./files/" + ".py"}, h.Template_path)
 			return
 		}
 
 		defer func() {
 			err = f.Close()
 			if err != nil {
-				log.Info("Failed to close file %s")
+				log.Info("Failed to close file")
 			}
 		}()
 
@@ -156,10 +147,10 @@ func Upload(w http.ResponseWriter, r *http.Request, template_path string, markin
 		//var a = submitor.SubmitPayload{}
 		var a = &submitor.Submission{
 			ContainerName: "autograder",
-			ImageName:     marking_config.ImageName,
+			ImageName:     h.Marker.ImageName,
 			TargetDir:     "/input",
-			Command:       []string{marking_config.Command},
-			BindedDir:     marking_config.MountPath,
+			Command:       []string{h.Marker.Command},
+			BindedDir:     h.Marker.MountPath,
 		}
 		submitor.CreateContainer(a)
 		//_, err = io.Copy(f, file)
@@ -231,7 +222,7 @@ func Upload(w http.ResponseWriter, r *http.Request, template_path string, markin
 		//defer del_file(id)
 
 		//Give back result
-		t, err := template.ParseFiles(template_path + "/result.html")
+		t, err := template.ParseFiles(h.Template_path + "/result.html")
 
 		err = t.Execute(w, "tests")
 		if err != nil {
@@ -240,4 +231,66 @@ func Upload(w http.ResponseWriter, r *http.Request, template_path string, markin
 		}
 
 	}
+}
+
+func SetLogger(logger *logrus.Logger) {
+	log = logger
+}
+
+type Marker struct {
+	DockerfilePath       string `yaml:"dockerfile_path"`
+	SubmissionFolderPath string `yaml:"submissions_folder"`
+	MountPath            string `yaml:"mount_path"`
+	Command              string `yaml:"command"`
+	ImageName            string `yaml:"image_name"`
+}
+
+func del_file(id string) {
+	err := os.Remove("./files/" + id + ".py")
+	if err != nil {
+		log.WithFields(logrus.Fields{"Old File Name": "./files/", "New file Name": "./files/" + id + ".py"}).Info(
+			"There was an error when trying to Delete file after tests was sucessful the file")
+		return
+	}
+}
+
+func template_handler(w http.ResponseWriter, r *http.Request, errorname string, logging logerror,
+	template_path string) {
+	t, err := template.ParseFiles(template_path + "/error.html")
+	err = t.Execute(w, errorname)
+	if err != nil {
+		log.WithFields(logrus.Fields{"Error": err}).Info("Template is missing")
+		return
+	}
+	log.WithFields(logrus.Fields{"Error": logging.goError, "Old File Name": logging.oldFileName,
+		"New File Name": logging.newFileName, "Error Type": logging.errortype}).Info(logging.info)
+	return
+}
+
+// Checks if file exists
+func exists(path string) (bool, error) {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true, nil
+	}
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	return true, err
+}
+
+func check_upload_file_extention(filename string, extentions []string) bool {
+
+	for _, value := range extentions {
+		split := strings.Split(filename, ".")
+		if split[len(split)-1] == value {
+			return true
+		}
+	}
+
+	return false
+}
+
+func check_py_file(filename string) {
+
 }
