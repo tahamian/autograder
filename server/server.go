@@ -19,6 +19,10 @@ import (
 	"time"
 )
 
+// TODO run container from upload handler
+// TODO fix the upload handler
+// TODO add a 3 sec timeout
+
 var log = logrus.New()
 
 func init() {
@@ -34,14 +38,13 @@ func init() {
 		},
 	})
 	handlers.SetLogger(log)
-
+	submitor.SetLogger(log)
 }
 
 func (htmlServer *HTMLServer) Stop() error {
 	const timeout = 5 * time.Second
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	//fmt.Printf("\nHTMLServer : Service stopping\n")
 	if err := htmlServer.server.Shutdown(ctx); err != nil {
 		if err := htmlServer.server.Close(); err != nil {
 			log.Info("HTMLServer : Service stopping : Error=", err)
@@ -84,6 +87,7 @@ func StartServer(config_path string) *HTMLServer {
 			ReadTimeout:    time.Second * time.Duration(config.ServerConfig.ReadTimeout),
 			WriteTimeout:   time.Second * time.Duration(config.ServerConfig.WriteTimeout),
 			MaxHeaderBytes: 1 << 20,
+			//ErrorLog:       ,
 		},
 	}
 

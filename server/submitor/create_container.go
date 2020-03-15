@@ -2,11 +2,9 @@ package submitor
 
 import (
 	"context"
-	"github.com/docker/docker/api/types"
-	"io"
-	"os"
 	"time"
 
+	//"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/client"
@@ -37,17 +35,17 @@ func CreateContainer(submission *Submission) {
 		log.Fatal(err)
 	}
 
-	res, err := cli.ContainerCreate(ctx,
+	_, err = cli.ContainerCreate(ctx,
 		&container.Config{
 			Image: submission.ImageName,
-			Cmd:   submission.Command,
+			//Cmd:   submission.Command,
 		},
 		&container.HostConfig{
 			Mounts: []mount.Mount{
 				{
 					Type:   mount.TypeBind,
-					Source: submission.BindedDir,
-					Target: submission.TargetDir,
+					Source: submission.TargetDir,
+					Target: submission.BindedDir,
 				},
 			},
 		}, nil, submission.ContainerName)
@@ -56,17 +54,21 @@ func CreateContainer(submission *Submission) {
 		log.Info(err)
 	}
 
-	err = cli.ContainerStart(ctx, res.ID, types.ContainerStartOptions{})
+	//err = cli.ContainerStart(ctx, res.ID, types.ContainerStartOptions{})
+	//if err != nil {
+	//	log.Info(err)
+	//}
 
-	reader, err := cli.ContainerLogs(ctx, res.ID, types.ContainerLogsOptions{})
-	if err != nil {
-		log.Info(err)
-	}
+	//reader, err := cli.ContainerLogs(ctx, res.ID, types.ContainerLogsOptions{})
+	//if err != nil {
+	//	log.Info(err)
+	//}
+	//
+	//_, err = io.Copy(os.Stdout, reader)
+	//if err != nil && err != io.EOF {
+	//	log.Info(err)
+	//}
 
-	_, err = io.Copy(os.Stdout, reader)
-	if err != nil && err != io.EOF {
-		log.Info(err)
-	}
 	t := time.Now()
 
 	log.Info(t.Sub(start))
