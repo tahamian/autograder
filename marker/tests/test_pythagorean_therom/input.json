@@ -1,5 +1,5 @@
 {
-  "filename": "scripts/test.py",
+  "filename": "tests/test_pythagorean_therom/pythagorean_therom.py",
   "stdout": true,
   "functions" : [
     {

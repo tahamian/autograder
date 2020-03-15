@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"autograder/server/submitor"
-	"errors"
+	//"errors"
 	"github.com/sirupsen/logrus"
 	"html/template"
 	"math/rand"
@@ -247,7 +247,7 @@ func del_file(id string) {
 
 func template_handler(w http.ResponseWriter, r *http.Request, error error, message string, template_path string) {
 	t, err := template.ParseFiles(template_path + "/error.html")
-	err = t.Execute(w, errorname)
+	err = t.Execute(w, err.Error())
 	if err != nil {
 		log.WithFields(logrus.Fields{"Error": err}).Info("Template is missing")
 		return

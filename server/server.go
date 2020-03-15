@@ -21,7 +21,7 @@ import (
 
 // TODO run container from upload handler
 // TODO fix the upload handler
-// TODO add a 3 sec timeout
+// TODO add a 3 sec timeout for container exec
 
 var log = logrus.New()
 
