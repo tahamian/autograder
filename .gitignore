@@ -135,3 +135,4 @@ templates/css/*
 !templates/css/.gitkeep
 
 marker/*.log
+marker/.idea/*

@@ -1,10 +1,10 @@
-from dis import get_instructions
 import logging
 
 from contextlib import contextmanager, redirect_stdout
 from importlib.util import module_from_spec, spec_from_file_location
 from io import StringIO
 from unittest.mock import patch
+from dis import get_instructions
 
 blacklist = ['os', 'sys', 'subprocess', 'threading', 'cmd', 'shlex', 'trace', 'tracemalloc', 'gc', 'pipes', 'syslog',
              'termios', 'posix', 'multiprocessing', 'concurrent', '_dummy_thread', 'dummy_threading']
