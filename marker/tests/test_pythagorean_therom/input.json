@@ -1,13 +1,17 @@
 {
-  "filename": "tests/test_pythagorean_therom/pythagorean_therom.py",
+  "filename": "marker/tests/test_pythagorean_therom/pythagorean_theorem.py",
   "stdout": true,
   "functions" : [
     {
-      "function_name": "hello",
+      "function_name": "pythagorean",
       "function_args": [
         {
-          "type" : "int",
-          "value": "1"
+          "type" : "float",
+          "value": "3.0"
+        },
+        {
+          "type" : "float",
+          "value": "4.0"
         }
       ]
     }

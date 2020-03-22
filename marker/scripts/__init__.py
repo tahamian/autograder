@@ -26,17 +26,26 @@ def run_script(config_file, log_file, *args, **kwargs):
 
 
 def get_result(config_file):
-    with open(config_file) as f:
-        input = json.load(f)
+
+    output = {
+        'stdout': {},
+        'functions': {},
+        # 'error': {}
+    }
+
+    try:
+        with open(config_file) as f:
+            input = json.load(f)
+
+    except FileNotFoundError as e:
+        output['error'] = 'file not found'
+        return output
 
     filename = input['filename']
     stdout = input['stdout']
     function = input['functions']
 
-    output = {
-        'stdout': {},
-        'functions': {}
-    }
+
 
     assignment = Assignment(filename, stdout, function)
 
@@ -45,4 +54,4 @@ def get_result(config_file):
 
     logger.info(output)
 
-    return output
+    return {'output' : output}

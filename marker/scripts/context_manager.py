@@ -42,11 +42,13 @@ def load_module(module_path, globals=None, locals=None):
         "__file__": module_path,
         "__name__": "__main__",
     })
-    with open(module_path, 'rb') as file:
-        with StringIO() as buf, redirect_stdout(buf):
-            exec(compile(file.read(), module_path, 'exec'), globals, locals)
-            return str(buf.getvalue()).rstrip()
-
+    try:
+        with open(module_path, 'rb') as file:
+            with StringIO() as buf, redirect_stdout(buf):
+                exec(compile(file.read(), module_path, 'exec'), globals, locals)
+                return str(buf.getvalue()).rstrip()
+    except FileNotFoundError as e:
+        return 'file not found'
 
 class BlackListedImport(Exception):
 
@@ -56,8 +58,9 @@ class BlackListedImport(Exception):
         self.msg = msg
 
 
-def exec_function(fn, *args):
+def exec_function(fn, args):
     status = 1
+    print(args)
     with StringIO() as buf, redirect_stdout(buf):
         try:
             retval = fn(*args)
@@ -74,7 +77,6 @@ class Assignment:
         self.filename = filename
         self.stdout = stdout
         self.functions = list(map(lambda x: Function(x), functions))
-
         with open(self.filename) as f:
             data = ''.join(f.readlines())
             program = get_instructions(data)
@@ -106,10 +108,12 @@ class Function:
 
     def evaluate_function(self, module):
         logger.info('trying to execute function {} with args {}'.format(self.function_name, str(self.function_args)))
+        print(self.function_args)
         with load_module_function(module) as (sub_mod, buf):
             f = getattr(sub_mod, self.function_name)
             result, buffer, status = exec_function(f, self.function_args)
-            if status == 0:
-                result = buffer.rstrip()
+        buffer = buffer.rstrip()
+        if result is None:
+            result = ""
         logger.info('function {} return value of {}'.format(self.function_name, str(result)))
-        return dict(result=result, status=status, function_name=self.function_name)
+        return dict(result=result, buffer=buffer,status=status, function_name=self.function_name)

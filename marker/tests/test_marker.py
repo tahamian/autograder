@@ -1,23 +1,40 @@
 import pytest
-from marker.scripts import run_script
-
+import json
+from marker.scripts import get_result
 
 class TestHelloWorld:
 
     def test_stdout(self):
-        # print(dir(marker))
-        print("Hello world")
 
-        assert 0 == 0
+        with open('marker/tests/test_hello_world/output.json') as f:
+            expected_output = json.load(f)
+
+        output = get_result('marker/tests/test_hello_world/input.json')
+
+        assert expected_output['output']['stdout'] == output['output']['stdout']
 
     def test_function_output(self):
-        pass
+
+        with open('marker/tests/test_hello_world/output.json') as f:
+            expected_output = json.load(f)
+
+        output = get_result('marker/tests/test_hello_world/input.json')
+
+        assert expected_output['output']['functions'] == output['output']['functions']
 
 
 class TestPythagoreanTheorem:
 
     def test_stdout(self):
-        pass
+        with open('marker/tests/test_pythagorean_therom/output.json') as f:
+            expected_output = json.load(f)
+
+        output = get_result('marker/tests/test_pythagorean_therom/input.json')
+        assert expected_output['output']['functions'] == output['output']['functions']
 
     def test_function_output(self):
-        pass
+        with open('marker/tests/test_pythagorean_therom/output.json') as f:
+            expected_output = json.load(f)
+
+        output = get_result('marker/tests/test_pythagorean_therom/input.json')
+        assert expected_output['output']['functions'] == output['output']['functions']
