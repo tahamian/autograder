@@ -54,6 +54,6 @@ server:
 marker:
   image_name: autograder
   dockerfile_path: marker/Dockerfile
-  submissions_folder: ./files
-  mount_path: /input
+  submissions_folder: /Users/ninjamian/go/src/autograder/files
+  mount_path: /tmp/
   command: marker

@@ -128,3 +128,11 @@ dump.rdb
 .idea/*
 
 files/*
+
+templates/js/*
+templates/css/*
+!templates/js/.gitkeep
+!templates/css/.gitkeep
+
+marker/*.log
+marker/.idea/*

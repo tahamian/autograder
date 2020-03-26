@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/go-redis/redis"
-	log "github.com/sirupsen/logrus"
+	//log "github.com/sirupsen/logrus"
 	"github.com/ulule/limiter"
 	sredis "github.com/ulule/limiter/drivers/store/redis"
 )
@@ -16,7 +16,7 @@ type Redis struct {
 }
 
 // TODO can make this a pointer
-func initalize_redis(redis_config Redis) (limiter.Store, limiter.Rate) {
+func initalize_redis(redis_config *Redis) (*limiter.Store, *limiter.Rate) {
 	// create rate limiter
 	rate, err := limiter.NewRateFromFormatted(redis_config.RateLimiter)
 	if err != nil {
@@ -55,5 +55,5 @@ func initalize_redis(redis_config Redis) (limiter.Store, limiter.Rate) {
 
 	log.Info("Successfully connected to redis server")
 
-	return store, rate
+	return &store, &rate
 }

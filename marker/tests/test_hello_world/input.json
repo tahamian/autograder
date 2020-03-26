@@ -1,5 +1,5 @@
 {
-  "filename": "file1",
+  "filename": "marker/tests/test_hello_world/hello_world.py",
   "stdout": true,
   "functions" : [
     {

@@ -3,18 +3,24 @@ package main
 import (
 	//"fmt"
 	"autograder/server"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"os"
 	"os/signal"
 )
 
+var log = logrus.New()
+
 func main() {
+	log.Out = os.Stdout
+	log.SetFormatter(&logrus.JSONFormatter{
+		DisableTimestamp: false,
+	})
 	htmlServer := server.StartServer("config.yaml")
 	defer htmlServer.Stop()
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt)
 	<-sigChan
 
-	log.WithFields(log.Fields{"SEVER_STATUS": "STOP", "MESSAGE": "HTMLServer : Stopped"}).Info()
+	log.Info("HTTP server shutdown")
 
 }

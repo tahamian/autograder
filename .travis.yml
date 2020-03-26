@@ -31,4 +31,4 @@ matrix:
         - pip install -r "${TRAVIS_BUILD_DIR}/marker/requirements.txt"
 
       script:
-        - pytest
+        - python -m pytest marker/tests

@@ -1,28 +1,40 @@
 import pytest
-import scripts
-
+import json
+from marker.scripts import get_result
 
 class TestHelloWorld:
 
-    def test_program(self):
-        expected_output = "Hello World"
-        # output = scripts.get_result(filename="marker/scripts/tests/hello_world.py", stdout=True, functions=None)
-        # assert 'success' in output['stdout']
-        # assert expected_output == output['stdout']['success'].decode('utf-8').rstrip()
+    def test_stdout(self):
 
-        pass
-class TestFunction:
+        with open('marker/tests/test_hello_world/output.json') as f:
+            expected_output = json.load(f)
 
-    def test_pythagorean(self):
-        a = '3'
-        b = '4'
-        c = '5.0'
+        output = get_result('marker/tests/test_hello_world/input.json')
 
-        # output = scripts.get_result(filename="marker/scripts/tests/pythagorean_theorem.py", stdout=False,
-        #                    functions=[{'name': 'pythagorean', 'args': [a, b]}])
-        #
-        # assert 'pythagorean' in output['functions']
-        # assert 'success' in output['functions']['pythagorean']
-        # assert output['functions']['pythagorean']['success'].rstrip() == c
+        assert expected_output['output']['stdout'] == output['output']['stdout']
+
+    def test_function_output(self):
+
+        with open('marker/tests/test_hello_world/output.json') as f:
+            expected_output = json.load(f)
+
+        output = get_result('marker/tests/test_hello_world/input.json')
+
+        assert expected_output['output']['functions'] == output['output']['functions']
 
 
+class TestPythagoreanTheorem:
+
+    def test_stdout(self):
+        with open('marker/tests/test_pythagorean_therom/output.json') as f:
+            expected_output = json.load(f)
+
+        output = get_result('marker/tests/test_pythagorean_therom/input.json')
+        assert expected_output['output']['functions'] == output['output']['functions']
+
+    def test_function_output(self):
+        with open('marker/tests/test_pythagorean_therom/output.json') as f:
+            expected_output = json.load(f)
+
+        output = get_result('marker/tests/test_pythagorean_therom/input.json')
+        assert expected_output['output']['functions'] == output['output']['functions']
