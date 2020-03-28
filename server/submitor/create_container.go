@@ -2,12 +2,15 @@ package submitor
 
 import (
 	"context"
+	"os"
 	"time"
 
-	//"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/client"
+	"github.com/docker/docker/pkg/stdcopy"
+
 	"github.com/sirupsen/logrus"
 )
 
@@ -29,16 +32,18 @@ type ContainerLog struct {
 
 func CreateContainer(submission *Submission) {
 	start := time.Now()
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	_, err = cli.ContainerCreate(ctx,
+	resp, err := cli.ContainerCreate(ctx,
 		&container.Config{
 			Image: submission.ImageName,
-			//Cmd:   submission.Command,
+			Cmd:   submission.Command,
 		},
 		&container.HostConfig{
 			Mounts: []mount.Mount{
@@ -52,6 +57,30 @@ func CreateContainer(submission *Submission) {
 
 	if err != nil {
 		log.Info(err)
+	}
+
+	if err := cli.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{}); err != nil {
+		panic(err)
+	}
+
+	statusCh, errCh := cli.ContainerWait(ctx, resp.ID, container.WaitConditionNotRunning)
+	select {
+	case err := <-errCh:
+		if err != nil {
+			panic(err)
+		}
+	case <-statusCh:
+	}
+
+	out, err := cli.ContainerLogs(ctx, resp.ID, types.ContainerLogsOptions{ShowStdout: true})
+	if err != nil {
+		panic(err)
+	}
+
+	_, err = stdcopy.StdCopy(os.Stdout, os.Stderr, out)
+
+	if err != nil {
+		log.Warn("error while ")
 	}
 
 	//err = cli.ContainerStart(ctx, res.ID, types.ContainerStartOptions{})
@@ -70,6 +99,5 @@ func CreateContainer(submission *Submission) {
 	//}
 
 	t := time.Now()
-
 	log.Info(t.Sub(start))
 }

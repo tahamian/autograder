@@ -60,7 +60,6 @@ class BlackListedImport(Exception):
 
 def exec_function(fn, args):
     status = 1
-    print(args)
     with StringIO() as buf, redirect_stdout(buf):
         try:
             retval = fn(*args)
@@ -108,7 +107,6 @@ class Function:
 
     def evaluate_function(self, module):
         logger.info('trying to execute function {} with args {}'.format(self.function_name, str(self.function_args)))
-        print(self.function_args)
         with load_module_function(module) as (sub_mod, buf):
             f = getattr(sub_mod, self.function_name)
             result, buffer, status = exec_function(f, self.function_args)

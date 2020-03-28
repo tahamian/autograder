@@ -138,7 +138,7 @@ func (h *Handler) Upload(w http.ResponseWriter, r *http.Request) {
 			ContainerName: id,
 			ImageName:     h.Marker.ImageName,
 			TargetDir:     h.Marker.MountPath,
-			Command:       []string{"ls"},
+			Command:       []string{"/usr/bin/python3", "--version"},
 			BindedDir:     "/usr",
 		}
 
@@ -153,7 +153,6 @@ func (h *Handler) Upload(w http.ResponseWriter, r *http.Request) {
 		//}
 
 		//Generate unique id
-
 		//Rename the file with the unique id
 		//err = os.Rename("./files/"+handler.Filename, "./files/"+id+".py")
 		//if err != nil {
