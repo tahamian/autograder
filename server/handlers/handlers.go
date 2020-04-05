@@ -2,6 +2,8 @@ package handlers
 
 import (
 	"autograder/server/submitor"
+	"path/filepath"
+
 	//"errors"
 	"github.com/sirupsen/logrus"
 	"html/template"
@@ -119,9 +121,18 @@ func (h *Handler) Upload(w http.ResponseWriter, r *http.Request) {
 		log.Info(lab_num)
 
 		id := time.Now().Format("20060102150405") + strconv.Itoa(rand.Intn(1000))
-		log.Info(id)
+		//log.Info(id)
+		// get the path
 
-		f, err := os.OpenFile("./files/"+handler.Filename, os.O_WRONLY|os.O_CREATE, 0666)
+		bindedDir := h.Marker.SubmissionFolderPath + id
+
+		err = os.MkdirAll(bindedDir, os.ModePerm)
+		if err != nil {
+			template_handler(w, r, err, "Could not create a directory", h.Template_path)
+			return
+		}
+
+		f, err := os.OpenFile(bindedDir+"/"+handler.Filename, os.O_WRONLY|os.O_CREATE, 0666)
 		if err != nil {
 			template_handler(w, r, err, "Failed to save file", h.Template_path)
 			return
@@ -134,13 +145,30 @@ func (h *Handler) Upload(w http.ResponseWriter, r *http.Request) {
 			}
 		}()
 
+		absoluteBindedDir, err := filepath.Abs(bindedDir)
+		if err != nil {
+			template_handler(w, r, err, "Unable to get abs path of dir", h.Template_path)
+			return
+		}
+
 		var a = &submitor.Submission{
 			ContainerName: id,
 			ImageName:     h.Marker.ImageName,
 			TargetDir:     h.Marker.MountPath,
-			Command:       []string{"/usr/bin/python3", "--version"},
-			BindedDir:     "/usr",
+			BindedDir:     absoluteBindedDir,
 		}
+
+		/*
+
+			TODO
+				1.) make sure container mounts temp directory
+				2.) delete the directoy after complete
+				3.) pass in config file
+				4.)
+		*/
+		// TODO create directory then add file to with name to directory
+		// TODO make sure mounted directory works
+		//
 
 		submitor.CreateContainer(a)
 

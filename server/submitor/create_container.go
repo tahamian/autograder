@@ -2,12 +2,13 @@ package submitor
 
 import (
 	"context"
+	"fmt"
+	"github.com/docker/docker/api/types/mount"
 	"os"
 	"time"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
 
@@ -43,14 +44,22 @@ func CreateContainer(submission *Submission) {
 	resp, err := cli.ContainerCreate(ctx,
 		&container.Config{
 			Image: submission.ImageName,
-			Cmd:   submission.Command,
+			//Cmd:       submission.Command,
+			Tty:          true,
+			OpenStdin:    true,
+			StdinOnce:    true,
+			AttachStderr: true,
+			AttachStdin:  true,
+			AttachStdout: true,
 		},
 		&container.HostConfig{
+
+			//AutoRemove: true,
 			Mounts: []mount.Mount{
 				{
 					Type:   mount.TypeBind,
-					Source: submission.TargetDir,
-					Target: submission.BindedDir,
+					Source: submission.BindedDir,
+					Target: submission.TargetDir,
 				},
 			},
 		}, nil, submission.ContainerName)
@@ -77,27 +86,12 @@ func CreateContainer(submission *Submission) {
 		panic(err)
 	}
 
-	_, err = stdcopy.StdCopy(os.Stdout, os.Stderr, out)
+	result, err := stdcopy.StdCopy(os.Stdout, os.Stderr, out)
 
 	if err != nil {
 		log.Warn("error while ")
 	}
-
-	//err = cli.ContainerStart(ctx, res.ID, types.ContainerStartOptions{})
-	//if err != nil {
-	//	log.Info(err)
-	//}
-
-	//reader, err := cli.ContainerLogs(ctx, res.ID, types.ContainerLogsOptions{})
-	//if err != nil {
-	//	log.Info(err)
-	//}
-	//
-	//_, err = io.Copy(os.Stdout, reader)
-	//if err != nil && err != io.EOF {
-	//	log.Info(err)
-	//}
-
+	fmt.Println(result)
 	t := time.Now()
 	log.Info(t.Sub(start))
 }

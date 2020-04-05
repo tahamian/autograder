@@ -1,8 +1,10 @@
 FROM python:3
 
+WORKDIR /usr/src/app
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+COPY scripts ./scripts/
 
-ADD scripts /usr/local/
-COPY requirements.txt /home
-RUN echo 'alias marker=python -m /usr/local/scripts' >> ~/.bashrc
+ENV PATH="/usr/local/bin/python:${PATH}"
 
-ENTRYPOINT []
+CMD [ "/usr/local/bin/python", "-m", "scripts" ]
