@@ -2,14 +2,16 @@ package handlers
 
 import (
 	"autograder/server/submitor"
-	"path/filepath"
-
-	//"errors"
+	"encoding/json"
+	"errors"
+	"fmt"
 	"github.com/sirupsen/logrus"
 	"html/template"
+	"io/ioutil"
 	"math/rand"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -18,18 +20,67 @@ import (
 var log = logrus.New()
 
 type Lab struct {
-	Name             string `yaml:"name"`
-	ID               string `yaml:"id"`
-	ProblemStatement string `yaml:"problem_statement"`
-	Testcase         []struct {
-		Expected []struct {
-			Feedback string   `yaml:"feedback"`
-			Points   float64  `yaml:"points"`
-			Values   []string `yaml:"values"`
-		} `yaml:"expected"`
-		Type   string   `yaml:"type"`
-		Inputs []string `yaml:"inputs"`
-	} `yaml:"testcase"`
+	Name             string     `yaml:"name"`
+	ID               string     `yaml:"id"`
+	ProblemStatement string     `yaml:"problem_statement"`
+	Testcase         []Testcase `yaml:"testcase"`
+}
+
+type Testcase struct {
+	Expected  []Expected `yaml:"expected"`
+	Type      string     `yaml:"type"`
+	Name      string     `yaml:"name"`
+	Functions []Function `yaml:"functions"`
+}
+
+type Expected struct {
+	Feedback string   `yaml:"feedback"`
+	Points   float64  `yaml:"points"`
+	Values   []string `yaml:"values"`
+}
+
+type Input struct {
+	Filename  string     `yaml:"filename"`
+	Stdout    bool       `yaml:"stdout"`
+	Functions []Function `yaml:"functions"`
+}
+
+type Function struct {
+	FunctionName string        `yaml:"function_name"`
+	FunctionArgs []FunctionArg `yaml:"function_args"`
+}
+
+type FunctionArg struct {
+	Type  string `yaml:"type"`
+	Value string `yaml:"value"`
+}
+
+// TODO converts lab to json
+func (l *Lab) to_input() *Input {
+
+	input := Input{}
+	for _, test_case := range l.Testcase {
+		if test_case.Type == "stdout" {
+			input.Stdout = true
+		}
+
+		if test_case.Type == "function" {
+			input.Functions = append(input.Functions, test_case.Functions...)
+		}
+	}
+	return &input
+}
+
+func (i *Input) to_json(filename string) error {
+	input, err := json.Marshal(i)
+	if err != nil {
+		return err
+	}
+	err = ioutil.WriteFile(filename, input, 0644)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 type logerror struct {
@@ -118,12 +169,15 @@ func (h *Handler) Upload(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		log.Info(lab_num)
+		fmt.Println(lab_num)
+		lab_selected, err := get_lab(h.Labs, lab_num)
+		if err != nil {
+			template_handler(w, r, err, "failed to get lab id", h.Template_path)
+			return
+		}
 
+		fmt.Println(lab_selected)
 		id := time.Now().Format("20060102150405") + strconv.Itoa(rand.Intn(1000))
-		//log.Info(id)
-		// get the path
-
 		bindedDir := h.Marker.SubmissionFolderPath + id
 
 		err = os.MkdirAll(bindedDir, os.ModePerm)
@@ -151,6 +205,14 @@ func (h *Handler) Upload(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		// Write to json
+		input := lab_selected.to_input()
+		input.Filename = h.Marker.MountPath + "/" + handler.Filename
+		err = input.to_json(absoluteBindedDir + "input.json")
+		if err != nil {
+			template_handler(w, r, err, "unable to get input", h.Template_path)
+		}
+
 		var a = &submitor.Submission{
 			ContainerName: id,
 			ImageName:     h.Marker.ImageName,
@@ -159,87 +221,21 @@ func (h *Handler) Upload(w http.ResponseWriter, r *http.Request) {
 		}
 
 		/*
-
 			TODO
-				1.) make sure container mounts temp directory
 				2.) delete the directoy after complete
 				3.) pass in config file
-				4.)
+				4.) generate an input.json file
+				5.) get an output.json file
+				6.)
+
+
+			get lab number -> input.json
+
+
 		*/
-		// TODO create directory then add file to with name to directory
-		// TODO make sure mounted directory works
-		//
 
 		submitor.CreateContainer(a)
 
-		//_, err = io.Copy(f, file)
-		//if err != nil {
-		//	template_handler(w, r, "Internal Server Error", (logerror{goError: err, errortype: "",
-		//		info: "There was an error when trying to copy file", oldFileName: "./files/" + handler.Filename,
-		//		newFileName: "./files/" + ".py"}))
-		//	return
-		//}
-
-		//Generate unique id
-		//Rename the file with the unique id
-		//err = os.Rename("./files/"+handler.Filename, "./files/"+id+".py")
-		//if err != nil {
-		//	template_handler(w, r, "Internal Server Error", (logerror{goError: err,
-		//		errortype: "There was an error when trying to Rename file", info: "Rename file error",
-		//		oldFileName: "./files/" + handler.Filename, newFileName: "./files/" + id + ".py"}))
-		//	return
-		//}
-
-		// Run the tests with the given parameter
-		//cmd := exec.Command("python", "./scripts/main.py", "./files/"+id+".py", lab_num)
-		// Use a bytes.Buffer to get the output
-		//var buf bytes.Buffer
-		//var stderr bytes.Buffer
-		//
-		//cmd.Stderr = &stderr
-		//cmd.Stdout = &buf
-		//
-		//cmd.Start()
-		//if err != nil {
-		//	template_handler(w, r, "File Could not run"+stderr.String(), (logerror{goError: err,
-		//		errortype: "File Did not run", info: "Error when running command",
-		//		oldFileName: "./files/" + handler.Filename, newFileName: "./files/" + id + ".py"}))
-		//	return
-		//}
-		//// Use a channel to signal completion so we can use a select statement
-		//done := make(chan error)
-		//go func() { done <- cmd.Wait() }()
-		//
-		//// Start a timer
-		//timeout := time.After(3 * time.Second)
-		//
-		//// The select statement allows us to execute based on which channel
-		//// we get a message from first.
-		//select {
-		//case <-timeout:
-		//	// Timeout happened first, kill the process and print a message.
-		//	cmd.Process.Kill()
-		//	template_handler(w, r, "Python Script ran for too long", (logerror{goError: err,
-		//		errortype: "Command timed out", info: "Timeout", oldFileName: "./files/" + handler.Filename,
-		//		newFileName: "./files/" + ".py"}))
-		//	del_file(id)
-		//	return
-		//case err := <-done:
-		//	// Command completed before timeout. Print output and error if it exists.
-		//	// fmt.Println("Output:", buf.String())
-		//	if err != nil {
-		//		template_handler(w, r, "Error when running your script"+"\n"+err.Error(), (logerror{goError: err,
-		//			errortype: "Exit Status non zero", info: err.Error(),
-		//			oldFileName: "./files/" + handler.Filename, newFileName: "./files/" + ".py"}))
-		//		del_file(id)
-		//		return
-		//	}
-		//}
-		//
-		////Remove File
-		//defer del_file(id)
-
-		//Give back result
 		t, err := template.ParseFiles(h.Template_path + "/result.html")
 
 		err = t.Execute(w, "tests")
@@ -249,6 +245,16 @@ func (h *Handler) Upload(w http.ResponseWriter, r *http.Request) {
 		}
 
 	}
+}
+
+func get_lab(labs []Lab, lab_id string) (Lab, error) {
+	for _, lab := range labs {
+		if lab.ID == lab_id {
+			return lab, nil
+		}
+	}
+	err := errors.New("Invalid lab ID")
+	return Lab{}, err
 }
 
 func SetLogger(logger *logrus.Logger) {

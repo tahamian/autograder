@@ -7,4 +7,4 @@ COPY scripts ./scripts/
 
 ENV PATH="/usr/local/bin/python:${PATH}"
 
-CMD [ "/usr/local/bin/python", "-m", "scripts" ]
+CMD [ "/usr/local/bin/python", "-m", "scripts", "--config-file", "/mnt/input.json" ]
