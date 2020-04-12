@@ -61,6 +61,7 @@ type HTMLServer struct {
 	wg     sync.WaitGroup
 }
 
+// TODO make sure docker image is built before server starts
 func StartServer(config_path string) *HTMLServer {
 
 	config.getConf(config_path)

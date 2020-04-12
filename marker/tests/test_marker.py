@@ -20,7 +20,7 @@ class TestHelloWorld:
 
         output = get_result('marker/tests/test_hello_world/input.json')
 
-        assert expected_output['output']['functions'] == output['output']['functions']
+        assert expected_output['functions'] == output['functions']
 
 
 class TestPythagoreanTheorem:
@@ -37,4 +37,4 @@ class TestPythagoreanTheorem:
             expected_output = json.load(f)
 
         output = get_result('marker/tests/test_pythagorean_therom/input.json')
-        assert expected_output['output']['functions'] == output['output']['functions']
+        assert expected_output['functions'] == output['functions']

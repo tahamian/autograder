@@ -1,13 +1,11 @@
 {
-  "output": {
-    "stdout": "",
-    "functions": [
-      {
-        "result" : 5.0,
-        "status" : 0,
-        "function_name": "pythagorean",
-        "buffer": ""
-      }
-    ]
-  }
+  "stdout": "",
+  "functions": [
+    {
+      "result": 5.0,
+      "status": 0,
+      "function_name": "pythagorean",
+      "buffer": ""
+    }
+  ]
 }

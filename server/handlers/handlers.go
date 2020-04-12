@@ -40,19 +40,29 @@ type Expected struct {
 }
 
 type Input struct {
-	Filename  string     `yaml:"filename"`
-	Stdout    bool       `yaml:"stdout"`
-	Functions []Function `yaml:"functions"`
+	Filename  string     `yaml:"filename" json:"filename"`
+	Stdout    bool       `yaml:"stdout" json:"stdout"`
+	Functions []Function `yaml:"functions" json:"functions"`
 }
 
 type Function struct {
-	FunctionName string        `yaml:"function_name"`
-	FunctionArgs []FunctionArg `yaml:"function_args"`
+	FunctionName string        `yaml:"function_name" json:"function_name"`
+	FunctionArgs []FunctionArg `yaml:"function_args" json:"function_args"`
 }
 
 type FunctionArg struct {
 	Type  string `yaml:"type"`
 	Value string `yaml:"value"`
+}
+
+type Output struct {
+	Stdout    string `json:"stdout"`
+	Functions []struct {
+		Result       float64 `json:"result"`
+		Status       int     `json:"status"`
+		FunctionName string  `json:"function_name"`
+		Buffer       string  `json:"buffer"`
+	} `json:"functions"`
 }
 
 // TODO converts lab to json
@@ -169,7 +179,6 @@ func (h *Handler) Upload(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		fmt.Println(lab_num)
 		lab_selected, err := get_lab(h.Labs, lab_num)
 		if err != nil {
 			template_handler(w, r, err, "failed to get lab id", h.Template_path)
@@ -207,8 +216,8 @@ func (h *Handler) Upload(w http.ResponseWriter, r *http.Request) {
 
 		// Write to json
 		input := lab_selected.to_input()
-		input.Filename = h.Marker.MountPath + "/" + handler.Filename
-		err = input.to_json(absoluteBindedDir + "input.json")
+		input.Filename = h.Marker.MountPath + handler.Filename
+		err = input.to_json(absoluteBindedDir + "/input.json")
 		if err != nil {
 			template_handler(w, r, err, "unable to get input", h.Template_path)
 		}
@@ -220,21 +229,13 @@ func (h *Handler) Upload(w http.ResponseWriter, r *http.Request) {
 			BindedDir:     absoluteBindedDir,
 		}
 
-		/*
-			TODO
-				2.) delete the directoy after complete
-				3.) pass in config file
-				4.) generate an input.json file
-				5.) get an output.json file
-				6.)
-
-
-			get lab number -> input.json
-
-
-		*/
-
 		submitor.CreateContainer(a)
+
+		// TODO read output.json
+
+		/*
+
+		 */
 
 		t, err := template.ParseFiles(h.Template_path + "/result.html")
 

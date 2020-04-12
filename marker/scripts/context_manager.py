@@ -75,7 +75,12 @@ class Assignment:
     def __init__(self, filename, stdout, functions):
         self.filename = filename
         self.stdout = stdout
-        self.functions = list(map(lambda x: Function(x), functions))
+
+        if functions is not None:
+            self.functions = list(map(lambda x: Function(x), functions))
+        else:
+            self.functions = None
+
         with open(self.filename) as f:
             data = ''.join(f.readlines())
             program = get_instructions(data)
@@ -96,8 +101,9 @@ class Assignment:
         return None
 
     def get_functions(self):
-        return list(map(lambda x: x.evaluate_function(self.filename), self.functions))
-
+        if self.functions is not None:
+            return list(map(lambda x: x.evaluate_function(self.filename), self.functions))
+        return []
 
 class Function:
 

@@ -1,13 +1,11 @@
 {
-  "output": {
-    "stdout": "Hello",
-    "functions": [
-      {
-        "result" : "",
-        "status" : 0,
-        "function_name": "hello",
-        "buffer": "Hello World"
-      }
-    ]
-  }
+  "stdout": "Hello",
+  "functions": [
+    {
+      "result": "",
+      "status": 0,
+      "function_name": "hello",
+      "buffer": "Hello World"
+    }
+  ]
 }
