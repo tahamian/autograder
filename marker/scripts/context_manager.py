@@ -98,7 +98,7 @@ class Assignment:
             logger.info('getting stdout of {} and got output {}'.format(self.filename, str(output)))
             return output
 
-        return None
+        return ""
 
     def get_functions(self):
         if self.functions is not None:
@@ -113,11 +113,17 @@ class Function:
 
     def evaluate_function(self, module):
         logger.info('trying to execute function {} with args {}'.format(self.function_name, str(self.function_args)))
-        with load_module_function(module) as (sub_mod, buf):
-            f = getattr(sub_mod, self.function_name)
-            result, buffer, status = exec_function(f, self.function_args)
-        buffer = buffer.rstrip()
-        if result is None:
-            result = ""
+        try:
+            with load_module_function(module) as (sub_mod, buf):
+                f = getattr(sub_mod, self.function_name)
+                result, buffer, status = exec_function(f, self.function_args)
+            buffer = buffer.rstrip()
+            if result is None:
+                result = ""
+        except Exception as e:
+            result = str(e)
+            status = 1
+            buffer = ""
         logger.info('function {} return value of {}'.format(self.function_name, str(result)))
-        return dict(result=result, buffer=buffer,status=status, function_name=self.function_name)
+        return dict(result=str(result), buffer=buffer, status=status, function_name=self.function_name,
+                    function_args=list(map(lambda x: {'value': str(x), 'type': 'float'}, self.function_args)))

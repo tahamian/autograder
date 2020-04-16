@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/sirupsen/logrus"
 	"html/template"
+	"io"
 	"io/ioutil"
 	"math/rand"
 	"net/http"
@@ -35,7 +36,7 @@ type Testcase struct {
 
 type Expected struct {
 	Feedback string   `yaml:"feedback"`
-	Points   float64  `yaml:"points"`
+	Points   float32  `yaml:"points"`
 	Values   []string `yaml:"values"`
 }
 
@@ -51,21 +52,54 @@ type Function struct {
 }
 
 type FunctionArg struct {
-	Type  string `yaml:"type"`
-	Value string `yaml:"value"`
+	Type  string `yaml:"type" json:"type"`
+	Value string `yaml:"value" json:"value"`
 }
 
 type Output struct {
 	Stdout    string `json:"stdout"`
 	Functions []struct {
-		Result       float64 `json:"result"`
-		Status       int     `json:"status"`
-		FunctionName string  `json:"function_name"`
-		Buffer       string  `json:"buffer"`
+		Result       string        `json:"result"`
+		Result_Type  string        `json:"result_type"`
+		Status       int           `json:"status"`
+		FunctionName string        `json:"function_name"`
+		FunctionArgs []FunctionArg `json:"function_args"`
+		Buffer       string        `json:"buffer"`
 	} `json:"functions"`
 }
 
-// TODO converts lab to json
+type Result struct {
+	Evaluations []Evaluation
+	TotalPoints float32
+}
+
+type Evaluation struct {
+	Type   string
+	Actual string
+	Status string
+	Points float32
+}
+
+func output_from_file(filepath string) (*Output, error) {
+	o := &Output{}
+	jsonFile, err := os.Open(filepath)
+	if err != nil {
+		log.Warn("unable to load json data")
+		return o, err
+	}
+	jsonData, err := ioutil.ReadAll(jsonFile)
+	if err != nil {
+		log.Warn("unable to read json data")
+		return o, err
+	}
+	err = json.Unmarshal(jsonData, o)
+	if err != nil {
+		log.Warn("unable to load json data into struct")
+		return o, err
+	}
+	return o, nil
+}
+
 func (l *Lab) to_input() *Input {
 
 	input := Input{}
@@ -79,6 +113,98 @@ func (l *Lab) to_input() *Input {
 		}
 	}
 	return &input
+}
+
+// TODO write the evualtor function
+/*
+	Is it easier to evaluate function in python ?
+	then have a result json
+*/
+func (l *Lab) evaluate_lab(output *Output) (*Result, error) {
+	// for all test cases if the type, and function name matches and parameters check if the values are correct
+	var points float32
+	var actual string
+	var correct bool
+
+	result := Result{}
+	for _, test_case := range l.Testcase {
+		correct = false
+		if test_case.Type == "stdout" {
+
+			for _, expect := range test_case.Expected {
+				for _, value := range expect.Values {
+					if value == output.Stdout {
+						points = expect.Points
+						actual = expect.Feedback
+						correct = true
+					}
+				}
+			}
+
+			if !correct {
+				actual = "Wrong answer try again"
+			}
+
+			e := Evaluation{
+				Type:   test_case.Type,
+				Actual: output.Stdout,
+				Status: actual,
+				Points: points,
+			}
+
+			result.Evaluations = append(result.Evaluations, e)
+		} else if test_case.Type == "function" {
+			for _, f := range test_case.Functions {
+				for _, o := range output.Functions {
+					if f.FunctionName == o.FunctionName && check_function_args(f.FunctionArgs, o.FunctionArgs) {
+
+						e := Evaluation{
+							Type:   test_case.Type,
+							Actual: o.Result,
+						}
+
+						for _, expect := range test_case.Expected {
+							for _, value := range expect.Values {
+								if value == o.Result {
+									e.Points = expect.Points
+									e.Status = expect.Feedback
+									correct = true
+								}
+							}
+						}
+
+						if !correct {
+							e.Status = "Wrong function answer"
+						}
+
+						result.Evaluations = append(result.Evaluations, e)
+					}
+				}
+
+			}
+
+		}
+
+	}
+
+	return &result, nil
+}
+
+func check_function_args(arg1 []FunctionArg, arg2 []FunctionArg) bool {
+	for _, i := range arg1 {
+		match := false
+		for _, j := range arg2 {
+			if i.Value == j.Value {
+				match = true
+			} else {
+				match = false
+			}
+		}
+		if match {
+			return true
+		}
+	}
+	return false
 }
 
 func (i *Input) to_json(filename string) error {
@@ -200,13 +326,17 @@ func (h *Handler) Upload(w http.ResponseWriter, r *http.Request) {
 			template_handler(w, r, err, "Failed to save file", h.Template_path)
 			return
 		}
-
 		defer func() {
 			err = f.Close()
 			if err != nil {
 				log.Warn("Failed to close file", err)
 			}
 		}()
+
+		_, err = io.Copy(f, file)
+		if err != nil {
+			log.Warn("could not copy")
+		}
 
 		absoluteBindedDir, err := filepath.Abs(bindedDir)
 		if err != nil {
@@ -230,16 +360,19 @@ func (h *Handler) Upload(w http.ResponseWriter, r *http.Request) {
 		}
 
 		submitor.CreateContainer(a)
+		output, err := output_from_file(absoluteBindedDir + "/output.json")
+		if err != nil {
+			log.Warn("Failed", err)
+		}
 
-		// TODO read output.json
-
-		/*
-
-		 */
+		evaluation, err := lab_selected.evaluate_lab(output)
+		if err != nil {
+			log.Warn("Evaluation failed", err)
+		}
 
 		t, err := template.ParseFiles(h.Template_path + "/result.html")
 
-		err = t.Execute(w, "tests")
+		err = t.Execute(w, evaluation)
 		if err != nil {
 			log.WithFields(logrus.Fields{"Error": err}).Info("Template is missing")
 			return

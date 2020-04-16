@@ -31,9 +31,9 @@ labs:
         functions:
           - function_name: pythagorean
             function_args:
-            - value: 3
+            - value: 3.0
               type: float
-            - value : 4
+            - value : 4.0
               type: float
         expected:
           -

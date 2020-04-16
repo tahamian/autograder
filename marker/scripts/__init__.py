@@ -54,7 +54,7 @@ def get_result(config_file):
         output['functions'] = assignment.get_functions()
 
     except Exception as e:
-        output['error'] = 'Failed to evaluate {}'
+        output['error'] = 'Failed to evaluate {}'.format(e)
 
     logger.info(output)
 
