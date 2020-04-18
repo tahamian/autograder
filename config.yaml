@@ -15,6 +15,7 @@ labs:
               - "Hello world"
               - "hello world"
         type: stdout
+        name: hello_world
         functions:
           -
   -

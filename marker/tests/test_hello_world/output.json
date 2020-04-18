@@ -5,7 +5,13 @@
       "result": "",
       "status": 0,
       "function_name": "hello",
-      "buffer": "Hello World"
+      "buffer": "Hello World",
+      "function_args": [
+        {
+          "type" : "int",
+          "value": "1"
+        }
+      ]
     }
   ]
 }

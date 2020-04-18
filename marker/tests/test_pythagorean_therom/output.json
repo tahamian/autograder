@@ -2,10 +2,20 @@
   "stdout": "",
   "functions": [
     {
-      "result": 5.0,
+      "result": "5.0",
       "status": 0,
       "function_name": "pythagorean",
-      "buffer": ""
+      "buffer": "",
+      "function_args": [
+                {
+                    "value": "3.0",
+                    "type": "float"
+                },
+                {
+                    "value": "4.0",
+                    "type": "float"
+                }
+            ]
     }
   ]
 }

@@ -52,8 +52,8 @@ type Function struct {
 }
 
 type FunctionArg struct {
-	Type  string `yaml:"type" json:"type"`
-	Value string `yaml:"value" json:"value"`
+	Type  string      `yaml:"type" json:"type"`
+	Value interface{} `yaml:"value" json:"value"`
 }
 
 type Output struct {
