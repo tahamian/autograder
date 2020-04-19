@@ -50,6 +50,7 @@ def load_module(module_path, globals=None, locals=None):
     except FileNotFoundError as e:
         return 'file not found'
 
+
 class BlackListedImport(Exception):
 
     def __init__(self, msg):
@@ -104,6 +105,7 @@ class Assignment:
         if self.functions is not None:
             return list(map(lambda x: x.evaluate_function(self.filename), self.functions))
         return []
+
 
 class Function:
 

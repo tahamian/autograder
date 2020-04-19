@@ -127,11 +127,11 @@ func (l *Lab) evaluate_lab(output *Output) (*Result, error) {
 	var correct bool
 
 	result := Result{}
-	for _, test_case := range l.Testcase {
+	for _, testCase := range l.Testcase {
 		correct = false
-		if test_case.Type == "stdout" {
+		if testCase.Type == "stdout" {
 
-			for _, expect := range test_case.Expected {
+			for _, expect := range testCase.Expected {
 				for _, value := range expect.Values {
 					if value == output.Stdout {
 						points = expect.Points
@@ -146,24 +146,24 @@ func (l *Lab) evaluate_lab(output *Output) (*Result, error) {
 			}
 
 			e := Evaluation{
-				Type:   test_case.Type,
+				Type:   testCase.Type,
 				Actual: output.Stdout,
 				Status: actual,
 				Points: points,
 			}
 
 			result.Evaluations = append(result.Evaluations, e)
-		} else if test_case.Type == "function" {
-			for _, f := range test_case.Functions {
+		} else if testCase.Type == "function" {
+			for _, f := range testCase.Functions {
 				for _, o := range output.Functions {
-					if f.FunctionName == o.FunctionName && check_function_args(f.FunctionArgs, o.FunctionArgs) {
+					if f.FunctionName == o.FunctionName && checkFunctionArgs(f.FunctionArgs, o.FunctionArgs) {
 
 						e := Evaluation{
-							Type:   test_case.Type,
+							Type:   testCase.Type,
 							Actual: o.Result,
 						}
 
-						for _, expect := range test_case.Expected {
+						for _, expect := range testCase.Expected {
 							for _, value := range expect.Values {
 								if value == o.Result {
 									e.Points = expect.Points
@@ -190,7 +190,7 @@ func (l *Lab) evaluate_lab(output *Output) (*Result, error) {
 	return &result, nil
 }
 
-func check_function_args(arg1 []FunctionArg, arg2 []FunctionArg) bool {
+func checkFunctionArgs(arg1 []FunctionArg, arg2 []FunctionArg) bool {
 	for _, i := range arg1 {
 		match := false
 		for _, j := range arg2 {
@@ -207,7 +207,7 @@ func check_function_args(arg1 []FunctionArg, arg2 []FunctionArg) bool {
 	return false
 }
 
-func (i *Input) to_json(filename string) error {
+func (i *Input) toJson(filename string) error {
 	input, err := json.Marshal(i)
 	if err != nil {
 		return err
@@ -270,13 +270,13 @@ func (h *Handler) Upload(w http.ResponseWriter, r *http.Request) {
 		r.Body = http.MaxBytesReader(w, r.Body, 20*1024)
 		err := r.ParseMultipartForm(20)
 		if err != nil {
-			template_handler(w, r, err, "File size too big", h.Template_path)
+			templateHandler(w, r, err, "File size too big", h.Template_path)
 			return
 		}
 
 		file, handler, err := r.FormFile("uploadfile")
 		if err != nil {
-			template_handler(w, r, err, "Could not get file from post request", h.Template_path)
+			templateHandler(w, r, err, "Could not get file from post request", h.Template_path)
 			return
 		}
 
@@ -290,40 +290,40 @@ func (h *Handler) Upload(w http.ResponseWriter, r *http.Request) {
 		err = r.ParseForm()
 
 		if err != nil {
-			template_handler(w, r, err, "Could Not Parse form", h.Template_path)
+			templateHandler(w, r, err, "Could Not Parse form", h.Template_path)
 			return
 		}
 
-		if !check_upload_file_extention(handler.Filename, []string{"py"}) {
-			template_handler(w, r, err, "Invalid file extention uploaded", h.Template_path)
+		if !checkUploadFileExtention(handler.Filename, []string{"py"}) {
+			templateHandler(w, r, err, "Invalid file extention uploaded", h.Template_path)
 			return
 		}
 
-		lab_num := r.Form.Get("labs")
+		labNum := r.Form.Get("labs")
 		if err != nil {
-			template_handler(w, r, err, "Could not get lab number", h.Template_path)
+			templateHandler(w, r, err, "Could not get lab number", h.Template_path)
 			return
 		}
 
-		lab_selected, err := get_lab(h.Labs, lab_num)
+		labSelected, err := getLab(h.Labs, labNum)
 		if err != nil {
-			template_handler(w, r, err, "failed to get lab id", h.Template_path)
+			templateHandler(w, r, err, "failed to get lab id", h.Template_path)
 			return
 		}
 
-		fmt.Println(lab_selected)
+		fmt.Println(labSelected)
 		id := time.Now().Format("20060102150405") + strconv.Itoa(rand.Intn(1000))
-		bindedDir := h.Marker.SubmissionFolderPath + id
+		bindedDirectory := h.Marker.SubmissionFolderPath + id
 
-		err = os.MkdirAll(bindedDir, os.ModePerm)
+		err = os.MkdirAll(bindedDirectory, os.ModePerm)
 		if err != nil {
-			template_handler(w, r, err, "Could not create a directory", h.Template_path)
+			templateHandler(w, r, err, "Could not create a directory", h.Template_path)
 			return
 		}
 
-		f, err := os.OpenFile(bindedDir+"/"+handler.Filename, os.O_WRONLY|os.O_CREATE, 0666)
+		f, err := os.OpenFile(bindedDirectory+"/"+handler.Filename, os.O_WRONLY|os.O_CREATE, 0666)
 		if err != nil {
-			template_handler(w, r, err, "Failed to save file", h.Template_path)
+			templateHandler(w, r, err, "create a new file", h.Template_path)
 			return
 		}
 		defer func() {
@@ -335,21 +335,20 @@ func (h *Handler) Upload(w http.ResponseWriter, r *http.Request) {
 
 		_, err = io.Copy(f, file)
 		if err != nil {
-			log.Warn("could not copy")
+			templateHandler(w, r, err, "write contents into file", h.Template_path)
 		}
 
-		absoluteBindedDir, err := filepath.Abs(bindedDir)
+		absoluteBindedDir, err := filepath.Abs(bindedDirectory)
 		if err != nil {
-			template_handler(w, r, err, "Unable to get abs path of dir", h.Template_path)
+			templateHandler(w, r, err, "Unable to get abs path of dir", h.Template_path)
 			return
 		}
 
-		// Write to json
-		input := lab_selected.to_input()
+		input := labSelected.to_input()
 		input.Filename = h.Marker.MountPath + handler.Filename
-		err = input.to_json(absoluteBindedDir + "/input.json")
+		err = input.toJson(absoluteBindedDir + "/input.json")
 		if err != nil {
-			template_handler(w, r, err, "unable to get input", h.Template_path)
+			templateHandler(w, r, err, "unable to get input", h.Template_path)
 		}
 
 		var a = &submitor.Submission{
@@ -361,11 +360,12 @@ func (h *Handler) Upload(w http.ResponseWriter, r *http.Request) {
 
 		submitor.CreateContainer(a)
 		output, err := output_from_file(absoluteBindedDir + "/output.json")
+
 		if err != nil {
-			log.Warn("Failed", err)
+			templateHandler(w, r, err, "failed to get output from script", h.Template_path)
 		}
 
-		evaluation, err := lab_selected.evaluate_lab(output)
+		evaluation, err := labSelected.evaluate_lab(output)
 		if err != nil {
 			log.Warn("Evaluation failed", err)
 		}
@@ -381,7 +381,7 @@ func (h *Handler) Upload(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func get_lab(labs []Lab, lab_id string) (Lab, error) {
+func getLab(labs []Lab, lab_id string) (Lab, error) {
 	for _, lab := range labs {
 		if lab.ID == lab_id {
 			return lab, nil
@@ -412,7 +412,7 @@ func del_file(id string) {
 	}
 }
 
-func template_handler(w http.ResponseWriter, r *http.Request, error error, message string, template_path string) {
+func templateHandler(w http.ResponseWriter, r *http.Request, error error, message string, template_path string) {
 	t, err := template.ParseFiles(template_path + "/error.html")
 	err = t.Execute(w, err.Error())
 	if err != nil {
@@ -436,7 +436,7 @@ func exists(path string) (bool, error) {
 	return true, err
 }
 
-func check_upload_file_extention(filename string, extentions []string) bool {
+func checkUploadFileExtention(filename string, extentions []string) bool {
 
 	for _, value := range extentions {
 		split := strings.Split(filename, ".")
@@ -446,8 +446,4 @@ func check_upload_file_extention(filename string, extentions []string) bool {
 	}
 
 	return false
-}
-
-func check_py_file(filename string) {
-
 }
