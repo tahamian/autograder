@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"net/http"
+	"net/http/httputil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -223,15 +224,26 @@ type Handler struct {
 
 func (h *Handler) HandleIndex(w http.ResponseWriter, r *http.Request) {
 
-	log.Info("Got request")
+	requestDump, err := httputil.DumpRequest(r, true)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	log.Info(string(requestDump))
 
 	if r.URL.Path != "/" {
-		http.NotFound(w, r)
+		log.Info("Got a get request")
+		target := "http://" + r.Host + r.URL.Path
+		if len(r.URL.RawQuery) > 0 {
+			target += "?" + r.URL.RawQuery
+		}
+
+		http.Redirect(w, r, target, http.StatusTemporaryRedirect)
 		return
 	}
 
 	t := template.Must(template.ParseFiles(h.Template_path + "/index.html"))
-	err := t.ExecuteTemplate(w, "index.html", h.Labs)
+	err = t.ExecuteTemplate(w, "index.html", h.Labs)
 	if err != nil {
 		log.WithFields(logrus.Fields{"Error": err}).Info("Template Does not exisit")
 		return
