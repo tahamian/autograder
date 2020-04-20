@@ -112,6 +112,7 @@ class Function:
     def __init__(self, function):
         self.function_name = function['function_name']
         self.function_args = list(map(lambda x: types[x['type']](x['value']), function['function_args']))
+        self.testcase_name = function['testcase_name']
 
     def evaluate_function(self, module):
         logger.info('trying to execute function {} with args {}'.format(self.function_name, str(self.function_args)))
@@ -127,5 +128,4 @@ class Function:
             status = 1
             buffer = ""
         logger.info('function {} return value of {}'.format(self.function_name, str(result)))
-        return dict(result=str(result), buffer=buffer, status=status, function_name=self.function_name,
-                    function_args=list(map(lambda x: {'value': str(x), 'type': 'float'}, self.function_args)))
+        return dict(result=str(result), buffer=buffer, status=status, testcase_name=self.testcase_name)

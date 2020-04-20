@@ -49,6 +49,7 @@ type Input struct {
 type Function struct {
 	FunctionName string        `yaml:"function_name" json:"function_name"`
 	FunctionArgs []FunctionArg `yaml:"function_args" json:"function_args"`
+	TestcaseName string        `json:"testcase_name"`
 }
 
 type FunctionArg struct {
@@ -59,12 +60,10 @@ type FunctionArg struct {
 type Output struct {
 	Stdout    string `json:"stdout"`
 	Functions []struct {
-		Result       string        `json:"result"`
-		Result_Type  string        `json:"result_type"`
-		Status       int           `json:"status"`
-		FunctionName string        `json:"function_name"`
-		FunctionArgs []FunctionArg `json:"function_args"`
-		Buffer       string        `json:"buffer"`
+		Result       interface{} `json:"result"`
+		Status       int         `json:"status"`
+		Buffer       string      `json:"buffer"`
+		TestcaseName string      `json:"testcase_name"`
 	} `json:"functions"`
 }
 
@@ -75,12 +74,30 @@ type Result struct {
 
 type Evaluation struct {
 	Type   string
-	Actual string
+	Actual interface{}
 	Status string
 	Points float32
 }
 
-func output_from_file(filepath string) (*Output, error) {
+func (l *Lab) toInput() *Input {
+
+	input := Input{}
+	for _, testCase := range l.Testcase {
+		if testCase.Type == "stdout" {
+			input.Stdout = true
+		}
+
+		if testCase.Type == "function" {
+			for i := range testCase.Functions {
+				testCase.Functions[i].TestcaseName = testCase.Name
+			}
+			input.Functions = append(input.Functions, testCase.Functions...)
+		}
+	}
+	return &input
+}
+
+func outputFromFile(filepath string) (*Output, error) {
 	o := &Output{}
 	jsonFile, err := os.Open(filepath)
 	if err != nil {
@@ -100,89 +117,29 @@ func output_from_file(filepath string) (*Output, error) {
 	return o, nil
 }
 
-func (l *Lab) to_input() *Input {
-
-	input := Input{}
-	for _, test_case := range l.Testcase {
-		if test_case.Type == "stdout" {
-			input.Stdout = true
-		}
-
-		if test_case.Type == "function" {
-			input.Functions = append(input.Functions, test_case.Functions...)
-		}
-	}
-	return &input
+func (t *Testcase) getTestCaseByName(testcaseName string) bool {
+	return t.Name == testcaseName
 }
 
-// TODO write the evualtor function
-/*
-	Is it easier to evaluate function in python ?
-	then have a result json
-*/
-func (l *Lab) evaluate_lab(output *Output) (*Result, error) {
+// TODO add dynamic programming to make more effcient
+
+func (l *Lab) evaluateLab(output *Output) (*Result, error) {
 	// for all test cases if the type, and function name matches and parameters check if the values are correct
-	var points float32
-	var actual string
-	var correct bool
-
 	result := Result{}
+
 	for _, testCase := range l.Testcase {
-		correct = false
 		if testCase.Type == "stdout" {
-
-			for _, expect := range testCase.Expected {
-				for _, value := range expect.Values {
-					if value == output.Stdout {
-						points = expect.Points
-						actual = expect.Feedback
-						correct = true
-					}
-				}
+			e, err := handleStdType(&testCase, output)
+			if err != nil {
+				log.Warn("failed to evaluate")
 			}
-
-			if !correct {
-				actual = "Wrong answer try again"
-			}
-
-			e := Evaluation{
-				Type:   testCase.Type,
-				Actual: output.Stdout,
-				Status: actual,
-				Points: points,
-			}
-
-			result.Evaluations = append(result.Evaluations, e)
+			result.Evaluations = append(result.Evaluations, *e)
 		} else if testCase.Type == "function" {
-			for _, f := range testCase.Functions {
-				for _, o := range output.Functions {
-					if f.FunctionName == o.FunctionName && checkFunctionArgs(f.FunctionArgs, o.FunctionArgs) {
-
-						e := Evaluation{
-							Type:   testCase.Type,
-							Actual: o.Result,
-						}
-
-						for _, expect := range testCase.Expected {
-							for _, value := range expect.Values {
-								if value == o.Result {
-									e.Points = expect.Points
-									e.Status = expect.Feedback
-									correct = true
-								}
-							}
-						}
-
-						if !correct {
-							e.Status = "Wrong function answer"
-						}
-
-						result.Evaluations = append(result.Evaluations, e)
-					}
-				}
-
+			e, err := handleFunctionType(testCase, output)
+			if err != nil {
+				log.Warn("theres something fundamentally wrong with this code")
 			}
-
+			result.Evaluations = append(result.Evaluations, *e)
 		}
 
 	}
@@ -190,21 +147,47 @@ func (l *Lab) evaluate_lab(output *Output) (*Result, error) {
 	return &result, nil
 }
 
-func checkFunctionArgs(arg1 []FunctionArg, arg2 []FunctionArg) bool {
-	for _, i := range arg1 {
-		match := false
-		for _, j := range arg2 {
-			if i.Value == j.Value {
-				match = true
-			} else {
-				match = false
+func handleStdType(testCase *Testcase, output *Output) (*Evaluation, error) {
+
+	e := &Evaluation{
+		Actual: output.Stdout,
+		Type:   testCase.Type,
+	}
+
+	for _, expect := range testCase.Expected {
+		for _, value := range expect.Values {
+			if value == output.Stdout {
+				e.Points = expect.Points
+				e.Status = expect.Feedback
 			}
 		}
-		if match {
-			return true
+	}
+
+	return e, nil
+}
+
+func handleFunctionType(testCase Testcase, output *Output) (*Evaluation, error) {
+	e := Evaluation{
+		Type: testCase.Type,
+	}
+	for _, o := range output.Functions {
+		if testCase.Name == o.TestcaseName {
+			e.Actual = o.Result
+			for _, expect := range testCase.Expected {
+				for _, value := range expect.Values {
+					if value == o.Result {
+						e.Points = expect.Points
+						e.Status = expect.Feedback
+					}
+				}
+			}
+
 		}
 	}
-	return false
+	if e.Actual == nil {
+		e.Status = "Sorry could not match function names"
+	}
+	return &e, nil
 }
 
 func (i *Input) toJson(filename string) error {
@@ -344,7 +327,7 @@ func (h *Handler) Upload(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		input := labSelected.to_input()
+		input := labSelected.toInput()
 		input.Filename = h.Marker.MountPath + handler.Filename
 		err = input.toJson(absoluteBindedDir + "/input.json")
 		if err != nil {
@@ -359,13 +342,13 @@ func (h *Handler) Upload(w http.ResponseWriter, r *http.Request) {
 		}
 
 		submitor.CreateContainer(a)
-		output, err := output_from_file(absoluteBindedDir + "/output.json")
+		output, err := outputFromFile(absoluteBindedDir + "/output.json")
 
 		if err != nil {
 			templateHandler(w, r, err, "failed to get output from script", h.Template_path)
 		}
 
-		evaluation, err := labSelected.evaluate_lab(output)
+		evaluation, err := labSelected.evaluateLab(output)
 		if err != nil {
 			log.Warn("Evaluation failed", err)
 		}
