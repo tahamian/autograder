@@ -57,7 +57,7 @@ transform: translate(-50%, -50%);
 
       <h1 class="text-primary">Python Grader (Beta)</h1>
       <p class="text-info">Choose the lab number (not section), select your file (or Drag and Drop) and click Upload</p>
-      <select id="labs" class="form-control" onchange="changeList()">
+      <select id="labs" name="labs" class="form-control" onchange="changeList()">
         {{range $val := .}}
         <option value="{{$val.ID}}" desc="{{$val.ProblemStatement}}">{{$val.Name}}</option>
         {{end}}

@@ -2,12 +2,18 @@ package handlers
 
 import (
 	"autograder/server/submitor"
-	//"errors"
+	"encoding/json"
+	"errors"
+	"fmt"
 	"github.com/sirupsen/logrus"
 	"html/template"
+	"io"
+	"io/ioutil"
 	"math/rand"
 	"net/http"
+	"net/http/httputil"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -16,18 +22,185 @@ import (
 var log = logrus.New()
 
 type Lab struct {
-	Name             string `yaml:"name"`
-	ID               string `yaml:"id"`
-	ProblemStatement string `yaml:"problem_statement"`
-	Testcase         []struct {
-		Expected []struct {
-			Feedback string   `yaml:"feedback"`
-			Points   float64  `yaml:"points"`
-			Values   []string `yaml:"values"`
-		} `yaml:"expected"`
-		Type   string   `yaml:"type"`
-		Inputs []string `yaml:"inputs"`
-	} `yaml:"testcase"`
+	Name             string     `yaml:"name"`
+	ID               string     `yaml:"id"`
+	ProblemStatement string     `yaml:"problem_statement"`
+	Testcase         []Testcase `yaml:"testcase"`
+}
+
+type Testcase struct {
+	Expected  []Expected `yaml:"expected"`
+	Type      string     `yaml:"type"`
+	Name      string     `yaml:"name"`
+	Functions []Function `yaml:"functions"`
+}
+
+type Expected struct {
+	Feedback string   `yaml:"feedback"`
+	Points   float32  `yaml:"points"`
+	Values   []string `yaml:"values"`
+}
+
+type Input struct {
+	Filename  string     `yaml:"filename" json:"filename"`
+	Stdout    bool       `yaml:"stdout" json:"stdout"`
+	Functions []Function `yaml:"functions" json:"functions"`
+}
+
+type Function struct {
+	FunctionName string        `yaml:"function_name" json:"function_name"`
+	FunctionArgs []FunctionArg `yaml:"function_args" json:"function_args"`
+	TestcaseName string        `json:"testcase_name"`
+}
+
+type FunctionArg struct {
+	Type  string      `yaml:"type" json:"type"`
+	Value interface{} `yaml:"value" json:"value"`
+}
+
+type Output struct {
+	Stdout    string `json:"stdout"`
+	Functions []struct {
+		Result       interface{} `json:"result"`
+		Status       int         `json:"status"`
+		Buffer       string      `json:"buffer"`
+		TestcaseName string      `json:"testcase_name"`
+	} `json:"functions"`
+}
+
+type Result struct {
+	Evaluations []Evaluation
+	TotalPoints float32
+}
+
+type Evaluation struct {
+	Type   string
+	Actual interface{}
+	Status string
+	Points float32
+}
+
+func (l *Lab) toInput() *Input {
+
+	input := Input{}
+	for _, testCase := range l.Testcase {
+		if testCase.Type == "stdout" {
+			input.Stdout = true
+		}
+
+		if testCase.Type == "function" {
+			for i := range testCase.Functions {
+				testCase.Functions[i].TestcaseName = testCase.Name
+			}
+			input.Functions = append(input.Functions, testCase.Functions...)
+		}
+	}
+	return &input
+}
+
+func outputFromFile(filepath string) (*Output, error) {
+	o := &Output{}
+	jsonFile, err := os.Open(filepath)
+	if err != nil {
+		log.Warn("unable to load json data")
+		return o, err
+	}
+	jsonData, err := ioutil.ReadAll(jsonFile)
+	if err != nil {
+		log.Warn("unable to read json data")
+		return o, err
+	}
+	err = json.Unmarshal(jsonData, o)
+	if err != nil {
+		log.Warn("unable to load json data into struct")
+		return o, err
+	}
+	return o, nil
+}
+
+func (t *Testcase) getTestCaseByName(testcaseName string) bool {
+	return t.Name == testcaseName
+}
+
+// TODO add dynamic programming to make more effcient
+
+func (l *Lab) evaluateLab(output *Output) (*Result, error) {
+	// for all test cases if the type, and function name matches and parameters check if the values are correct
+	result := Result{}
+
+	for _, testCase := range l.Testcase {
+		if testCase.Type == "stdout" {
+			e, err := handleStdType(&testCase, output)
+			if err != nil {
+				log.Warn("failed to evaluate")
+			}
+			result.Evaluations = append(result.Evaluations, *e)
+		} else if testCase.Type == "function" {
+			e, err := handleFunctionType(testCase, output)
+			if err != nil {
+				log.Warn("theres something fundamentally wrong with this code")
+			}
+			result.Evaluations = append(result.Evaluations, *e)
+		}
+
+	}
+
+	return &result, nil
+}
+
+func handleStdType(testCase *Testcase, output *Output) (*Evaluation, error) {
+
+	e := &Evaluation{
+		Actual: output.Stdout,
+		Type:   testCase.Type,
+	}
+
+	for _, expect := range testCase.Expected {
+		for _, value := range expect.Values {
+			if value == output.Stdout {
+				e.Points = expect.Points
+				e.Status = expect.Feedback
+			}
+		}
+	}
+
+	return e, nil
+}
+
+func handleFunctionType(testCase Testcase, output *Output) (*Evaluation, error) {
+	e := Evaluation{
+		Type: testCase.Type,
+	}
+	for _, o := range output.Functions {
+		if testCase.Name == o.TestcaseName {
+			e.Actual = o.Result
+			for _, expect := range testCase.Expected {
+				for _, value := range expect.Values {
+					if value == o.Result {
+						e.Points = expect.Points
+						e.Status = expect.Feedback
+					}
+				}
+			}
+
+		}
+	}
+	if e.Actual == nil {
+		e.Status = "Sorry could not match function names"
+	}
+	return &e, nil
+}
+
+func (i *Input) toJson(filename string) error {
+	input, err := json.Marshal(i)
+	if err != nil {
+		return err
+	}
+	err = ioutil.WriteFile(filename, input, 0644)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 type logerror struct {
@@ -51,15 +224,26 @@ type Handler struct {
 
 func (h *Handler) HandleIndex(w http.ResponseWriter, r *http.Request) {
 
-	log.Info("Got request")
+	requestDump, err := httputil.DumpRequest(r, true)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	log.Info(string(requestDump))
 
 	if r.URL.Path != "/" {
-		http.NotFound(w, r)
+		log.Info("Got a get request")
+		target := "http://" + r.Host + r.URL.Path
+		if len(r.URL.RawQuery) > 0 {
+			target += "?" + r.URL.RawQuery
+		}
+
+		http.Redirect(w, r, target, http.StatusTemporaryRedirect)
 		return
 	}
 
 	t := template.Must(template.ParseFiles(h.Template_path + "/index.html"))
-	err := t.ExecuteTemplate(w, "index.html", h.Labs)
+	err = t.ExecuteTemplate(w, "index.html", h.Labs)
 	if err != nil {
 		log.WithFields(logrus.Fields{"Error": err}).Info("Template Does not exisit")
 		return
@@ -81,13 +265,13 @@ func (h *Handler) Upload(w http.ResponseWriter, r *http.Request) {
 		r.Body = http.MaxBytesReader(w, r.Body, 20*1024)
 		err := r.ParseMultipartForm(20)
 		if err != nil {
-			template_handler(w, r, err, "File size too big", h.Template_path)
+			templateHandler(w, r, err, "File size too big", h.Template_path)
 			return
 		}
 
 		file, handler, err := r.FormFile("uploadfile")
 		if err != nil {
-			template_handler(w, r, err, "Could not get file from post request", h.Template_path)
+			templateHandler(w, r, err, "Could not get file from post request", h.Template_path)
 			return
 		}
 
@@ -101,32 +285,42 @@ func (h *Handler) Upload(w http.ResponseWriter, r *http.Request) {
 		err = r.ParseForm()
 
 		if err != nil {
-			template_handler(w, r, err, "Could Not Parse form", h.Template_path)
+			templateHandler(w, r, err, "Could Not Parse form", h.Template_path)
 			return
 		}
 
-		if !check_upload_file_extention(handler.Filename, []string{"py"}) {
-			template_handler(w, r, err, "Invalid file extention uploaded", h.Template_path)
+		if !checkUploadFileExtention(handler.Filename, []string{"py"}) {
+			templateHandler(w, r, err, "Invalid file extention uploaded", h.Template_path)
 			return
 		}
 
-		lab_num := r.Form.Get("labs")
+		labNum := r.Form.Get("labs")
 		if err != nil {
-			template_handler(w, r, err, "Could not get lab number", h.Template_path)
+			templateHandler(w, r, err, "Could not get lab number", h.Template_path)
 			return
 		}
 
-		log.Info(lab_num)
+		labSelected, err := getLab(h.Labs, labNum)
+		if err != nil {
+			templateHandler(w, r, err, "failed to get lab id", h.Template_path)
+			return
+		}
 
+		fmt.Println(labSelected)
 		id := time.Now().Format("20060102150405") + strconv.Itoa(rand.Intn(1000))
-		log.Info(id)
+		bindedDirectory := h.Marker.SubmissionFolderPath + id
 
-		f, err := os.OpenFile("./files/"+handler.Filename, os.O_WRONLY|os.O_CREATE, 0666)
+		err = os.MkdirAll(bindedDirectory, os.ModePerm)
 		if err != nil {
-			template_handler(w, r, err, "Failed to save file", h.Template_path)
+			templateHandler(w, r, err, "Could not create a directory", h.Template_path)
 			return
 		}
 
+		f, err := os.OpenFile(bindedDirectory+"/"+handler.Filename, os.O_WRONLY|os.O_CREATE, 0666)
+		if err != nil {
+			templateHandler(w, r, err, "create a new file", h.Template_path)
+			return
+		}
 		defer func() {
 			err = f.Close()
 			if err != nil {
@@ -134,94 +328,62 @@ func (h *Handler) Upload(w http.ResponseWriter, r *http.Request) {
 			}
 		}()
 
+		_, err = io.Copy(f, file)
+		if err != nil {
+			templateHandler(w, r, err, "write contents into file", h.Template_path)
+		}
+
+		absoluteBindedDir, err := filepath.Abs(bindedDirectory)
+		if err != nil {
+			templateHandler(w, r, err, "Unable to get abs path of dir", h.Template_path)
+			return
+		}
+
+		input := labSelected.toInput()
+		input.Filename = h.Marker.MountPath + handler.Filename
+		err = input.toJson(absoluteBindedDir + "/input.json")
+		if err != nil {
+			templateHandler(w, r, err, "unable to get input", h.Template_path)
+		}
+
 		var a = &submitor.Submission{
 			ContainerName: id,
 			ImageName:     h.Marker.ImageName,
 			TargetDir:     h.Marker.MountPath,
-			Command:       []string{"ls"},
-			BindedDir:     "/usr",
+			BindedDir:     absoluteBindedDir,
 		}
 
 		submitor.CreateContainer(a)
+		output, err := outputFromFile(absoluteBindedDir + "/output.json")
 
-		//_, err = io.Copy(f, file)
-		//if err != nil {
-		//	template_handler(w, r, "Internal Server Error", (logerror{goError: err, errortype: "",
-		//		info: "There was an error when trying to copy file", oldFileName: "./files/" + handler.Filename,
-		//		newFileName: "./files/" + ".py"}))
-		//	return
-		//}
+		if err != nil {
+			templateHandler(w, r, err, "failed to get output from script", h.Template_path)
+		}
 
-		//Generate unique id
+		evaluation, err := labSelected.evaluateLab(output)
+		if err != nil {
+			log.Warn("Evaluation failed", err)
+		}
 
-		//Rename the file with the unique id
-		//err = os.Rename("./files/"+handler.Filename, "./files/"+id+".py")
-		//if err != nil {
-		//	template_handler(w, r, "Internal Server Error", (logerror{goError: err,
-		//		errortype: "There was an error when trying to Rename file", info: "Rename file error",
-		//		oldFileName: "./files/" + handler.Filename, newFileName: "./files/" + id + ".py"}))
-		//	return
-		//}
-
-		// Run the tests with the given parameter
-		//cmd := exec.Command("python", "./scripts/main.py", "./files/"+id+".py", lab_num)
-		// Use a bytes.Buffer to get the output
-		//var buf bytes.Buffer
-		//var stderr bytes.Buffer
-		//
-		//cmd.Stderr = &stderr
-		//cmd.Stdout = &buf
-		//
-		//cmd.Start()
-		//if err != nil {
-		//	template_handler(w, r, "File Could not run"+stderr.String(), (logerror{goError: err,
-		//		errortype: "File Did not run", info: "Error when running command",
-		//		oldFileName: "./files/" + handler.Filename, newFileName: "./files/" + id + ".py"}))
-		//	return
-		//}
-		//// Use a channel to signal completion so we can use a select statement
-		//done := make(chan error)
-		//go func() { done <- cmd.Wait() }()
-		//
-		//// Start a timer
-		//timeout := time.After(3 * time.Second)
-		//
-		//// The select statement allows us to execute based on which channel
-		//// we get a message from first.
-		//select {
-		//case <-timeout:
-		//	// Timeout happened first, kill the process and print a message.
-		//	cmd.Process.Kill()
-		//	template_handler(w, r, "Python Script ran for too long", (logerror{goError: err,
-		//		errortype: "Command timed out", info: "Timeout", oldFileName: "./files/" + handler.Filename,
-		//		newFileName: "./files/" + ".py"}))
-		//	del_file(id)
-		//	return
-		//case err := <-done:
-		//	// Command completed before timeout. Print output and error if it exists.
-		//	// fmt.Println("Output:", buf.String())
-		//	if err != nil {
-		//		template_handler(w, r, "Error when running your script"+"\n"+err.Error(), (logerror{goError: err,
-		//			errortype: "Exit Status non zero", info: err.Error(),
-		//			oldFileName: "./files/" + handler.Filename, newFileName: "./files/" + ".py"}))
-		//		del_file(id)
-		//		return
-		//	}
-		//}
-		//
-		////Remove File
-		//defer del_file(id)
-
-		//Give back result
 		t, err := template.ParseFiles(h.Template_path + "/result.html")
 
-		err = t.Execute(w, "tests")
+		err = t.Execute(w, evaluation)
 		if err != nil {
 			log.WithFields(logrus.Fields{"Error": err}).Info("Template is missing")
 			return
 		}
 
 	}
+}
+
+func getLab(labs []Lab, lab_id string) (Lab, error) {
+	for _, lab := range labs {
+		if lab.ID == lab_id {
+			return lab, nil
+		}
+	}
+	err := errors.New("Invalid lab ID")
+	return Lab{}, err
 }
 
 func SetLogger(logger *logrus.Logger) {
@@ -245,7 +407,7 @@ func del_file(id string) {
 	}
 }
 
-func template_handler(w http.ResponseWriter, r *http.Request, error error, message string, template_path string) {
+func templateHandler(w http.ResponseWriter, r *http.Request, error error, message string, template_path string) {
 	t, err := template.ParseFiles(template_path + "/error.html")
 	err = t.Execute(w, err.Error())
 	if err != nil {
@@ -269,7 +431,7 @@ func exists(path string) (bool, error) {
 	return true, err
 }
 
-func check_upload_file_extention(filename string, extentions []string) bool {
+func checkUploadFileExtention(filename string, extentions []string) bool {
 
 	for _, value := range extentions {
 		split := strings.Split(filename, ".")
@@ -279,8 +441,4 @@ func check_upload_file_extention(filename string, extentions []string) bool {
 	}
 
 	return false
-}
-
-func check_py_file(filename string) {
-
 }

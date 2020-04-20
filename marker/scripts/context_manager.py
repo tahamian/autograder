@@ -50,6 +50,7 @@ def load_module(module_path, globals=None, locals=None):
     except FileNotFoundError as e:
         return 'file not found'
 
+
 class BlackListedImport(Exception):
 
     def __init__(self, msg):
@@ -60,7 +61,6 @@ class BlackListedImport(Exception):
 
 def exec_function(fn, args):
     status = 1
-    print(args)
     with StringIO() as buf, redirect_stdout(buf):
         try:
             retval = fn(*args)
@@ -76,7 +76,12 @@ class Assignment:
     def __init__(self, filename, stdout, functions):
         self.filename = filename
         self.stdout = stdout
-        self.functions = list(map(lambda x: Function(x), functions))
+
+        if functions is not None:
+            self.functions = list(map(lambda x: Function(x), functions))
+        else:
+            self.functions = None
+
         with open(self.filename) as f:
             data = ''.join(f.readlines())
             program = get_instructions(data)
@@ -94,10 +99,12 @@ class Assignment:
             logger.info('getting stdout of {} and got output {}'.format(self.filename, str(output)))
             return output
 
-        return None
+        return ""
 
     def get_functions(self):
-        return list(map(lambda x: x.evaluate_function(self.filename), self.functions))
+        if self.functions is not None:
+            return list(map(lambda x: x.evaluate_function(self.filename), self.functions))
+        return []
 
 
 class Function:
@@ -105,15 +112,20 @@ class Function:
     def __init__(self, function):
         self.function_name = function['function_name']
         self.function_args = list(map(lambda x: types[x['type']](x['value']), function['function_args']))
+        self.testcase_name = function['testcase_name']
 
     def evaluate_function(self, module):
         logger.info('trying to execute function {} with args {}'.format(self.function_name, str(self.function_args)))
-        print(self.function_args)
-        with load_module_function(module) as (sub_mod, buf):
-            f = getattr(sub_mod, self.function_name)
-            result, buffer, status = exec_function(f, self.function_args)
-        buffer = buffer.rstrip()
-        if result is None:
-            result = ""
+        try:
+            with load_module_function(module) as (sub_mod, buf):
+                f = getattr(sub_mod, self.function_name)
+                result, buffer, status = exec_function(f, self.function_args)
+            buffer = buffer.rstrip()
+            if result is None:
+                result = ""
+        except Exception as e:
+            result = str(e)
+            status = 1
+            buffer = ""
         logger.info('function {} return value of {}'.format(self.function_name, str(result)))
-        return dict(result=result, buffer=buffer,status=status, function_name=self.function_name)
+        return dict(result=str(result), buffer=buffer, status=status, testcase_name=self.testcase_name)
