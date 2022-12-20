@@ -1,8 +1,10 @@
 FROM python:3
 
-ADD scripts /usr/local/
-#ADD scripts/requirements.txt /home/
-#ADD scripts/tests /home/
+WORKDIR /usr/src/app
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+COPY scripts ./scripts/
 
-RUN echo 'alias marker=python -m /usr/local/scripts' >> ~/.bashrc
+ENV PATH="/usr/local/bin/python:${PATH}"
 
+CMD [ "/usr/local/bin/python", "-m", "scripts", "--config-file", "/mnt/input.json", "--output-file", "/mnt/output.json" ]

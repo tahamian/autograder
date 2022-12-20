@@ -15,6 +15,9 @@ labs:
               - "Hello world"
               - "hello world"
         type: stdout
+        name: hello_world
+        functions:
+          -
   -
     id: lab_2
     name: Lab 2 - Pythogrean Theorm
@@ -25,9 +28,14 @@ labs:
     testcase:
       -
         type: function
-        input:
-          - 3
-          - 4
+        name: hello
+        functions:
+          - function_name: pythagorean
+            function_args:
+            - value: 3.0
+              type: float
+            - value : 4.0
+              type: float
         expected:
           -
             feedback: Nice
@@ -54,6 +62,6 @@ server:
 marker:
   image_name: autograder
   dockerfile_path: marker/Dockerfile
-  submissions_folder: /Users/ninjamian/go/src/autograder/files
-  mount_path: /tmp/
+  submissions_folder: ./files/
+  mount_path: /mnt/
   command: marker

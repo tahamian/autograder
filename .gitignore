@@ -136,3 +136,6 @@ templates/css/*
 
 marker/*.log
 marker/.idea/*
+cleanImages.sh
+
+.coverage

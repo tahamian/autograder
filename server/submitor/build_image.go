@@ -136,12 +136,3 @@ type SubmitPayload struct {
 		} `json:"function_args"`
 	} `json:"functions"`
 }
-
-type Output struct {
-	Output struct {
-		Stdout    string `json:"stdout"`
-		Functions []struct {
-			Output string `json:"output"`
-		} `json:"functions"`
-	} `json:"output"`
-}
