@@ -1,0 +1,30 @@
+services:
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  marker:
+    build: ./marker
+    image: autograder-marker
+    command: ["marker", "--help"]
+
+  autograder:
+    build: .
+    ports:
+      - "9090:9090"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${AUTOGRADER_FILES_DIR:-/tmp/autograder-files}:/app/files
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - AUTOGRADER_HOST_FILES_DIR=${AUTOGRADER_FILES_DIR:-/tmp/autograder-files}
+      - AUTOGRADER_MARKER_IMAGE=autograder-marker
+    depends_on:
+      redis:
+        condition: service_healthy
+      marker:
+        condition: service_completed_successfully

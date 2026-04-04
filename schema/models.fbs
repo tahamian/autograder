@@ -1,0 +1,72 @@
+// Canonical model definitions for the Autograder.
+// Go, TypeScript, and Python types are generated from this file.
+//
+//   flatc -g -T -p --gen-object-api --gen-onefile --python-typing \
+//         -o gen/ schema/models.fbs
+
+namespace autograder;
+
+// ─── API models (Go ↔ TypeScript) ───────────────────
+
+/// Lab assignment exposed via GET /api/labs.
+table Lab {
+  id: string;
+  name: string;
+  problem_statement: string;
+}
+
+/// Grading result for a single test case.
+table Evaluation {
+  type: string;
+  name: string;
+  actual: string;
+  status: string;
+  points: float;
+}
+
+/// Full grading result returned by POST /api/submit.
+table GradeResult {
+  evaluations: [Evaluation];
+  total_points: float;
+}
+
+/// Standard API error response.
+table APIError {
+  error: string;
+}
+
+// ─── Marker models (Go ↔ Python) ────────────────────
+
+/// Typed argument for a function call.
+table FunctionArg {
+  type: string;
+  value: string;
+}
+
+/// Function call to be tested.
+table Function {
+  function_name: string;
+  function_args: [FunctionArg];
+  testcase_name: string;
+}
+
+/// JSON payload sent to the marker container.
+table MarkerInput {
+  filename: string;
+  stdout: bool;
+  functions: [Function];
+}
+
+/// Single function's output from the marker.
+table FunctionResult {
+  result: string;
+  status: int;
+  buffer: string;
+  testcase_name: string;
+}
+
+/// JSON result from the marker container.
+table MarkerOutput {
+  stdout: string;
+  functions: [FunctionResult];
+}
