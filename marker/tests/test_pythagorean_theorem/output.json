@@ -1,10 +1,10 @@
 {
-  "stdout": "Hello",
+  "stdout": "",
   "functions": [
     {
-      "result": "",
+      "result": "5.0",
       "status": 0,
-      "buffer": "Hello World",
+      "buffer": "",
       "testcase_name": ""
     }
   ]

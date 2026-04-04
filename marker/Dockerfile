@@ -1,10 +1,12 @@
-FROM python:3
+FROM python:3.12-slim
 
 WORKDIR /usr/src/app
-COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
-COPY scripts ./scripts/
 
-ENV PATH="/usr/local/bin/python:${PATH}"
+COPY pyproject.toml ./
+COPY marker/ marker/
+RUN pip install --no-cache-dir .
 
-CMD [ "/usr/local/bin/python", "-m", "scripts", "--config-file", "/mnt/input.json", "--output-file", "/mnt/output.json" ]
+# Verify the entry point works
+RUN marker --help > /dev/null
+
+CMD ["marker", "--config-file", "/mnt/input.json", "--output-file", "/mnt/output.json"]

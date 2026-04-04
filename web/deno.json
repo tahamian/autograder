@@ -1,0 +1,28 @@
+{
+  "nodeModulesDir": "auto",
+  "tasks": {
+    "dev": "deno run -A npm:vite",
+    "build": "deno run -A npm:vite build",
+    "preview": "deno run -A npm:vite preview",
+    "test": "deno test --allow-read --allow-env src/",
+    "lint": "deno run -A npm:eslint src/",
+    "lint:fix": "deno run -A npm:eslint src/ --fix",
+    "fmt": "deno run -A npm:prettier --write 'src/**/*.ts' index.html",
+    "fmt:check": "deno run -A npm:prettier --check 'src/**/*.ts' index.html"
+  },
+  "imports": {
+    "vite": "npm:vite@^6.3.0",
+    "@tailwindcss/vite": "npm:@tailwindcss/vite@^4.1.0",
+    "tailwindcss": "npm:tailwindcss@^4.1.0",
+    "@std/testing": "jsr:@std/testing@^1",
+    "chai": "npm:chai@^5.0.0",
+    "jsdom": "npm:jsdom@^26.0.0",
+    "eslint": "npm:eslint@^9.0.0",
+    "typescript-eslint": "npm:typescript-eslint@^8.0.0",
+    "prettier": "npm:prettier@^3.0.0"
+  },
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "strict": true
+  }
+}

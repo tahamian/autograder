@@ -1,0 +1,43 @@
+[project]
+name = "marker"
+version = "0.1.0"
+description = "Python script grader that runs inside Docker containers"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Mostafa Ayesh" }]
+dependencies = [
+    "click>=7.0,<9.0",
+]
+
+[project.scripts]
+marker = "marker.cli:run_script"
+
+[tool.poetry]
+packages = [{include = "marker"}]
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0"
+yapf = "^0.43"
+isort = "^6.0"
+
+# --- All tool config lives here ---
+
+[tool.yapf]
+based_on_style = "pep8"
+column_limit = 120
+indent_width = 4
+dedent_closing_brackets = true
+split_before_logical_operator = true
+
+[tool.isort]
+profile = "black"
+line_length = 120
+known_first_party = ["marker"]
+skip_glob = ["marker/generated/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[build-system]
+requires = ["poetry-core>=2.0"]
+build-backend = "poetry.core.masonry.api"
