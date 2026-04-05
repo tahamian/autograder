@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"testing"
 
-	containertypes "github.com/docker/docker/api/types/container"
+	"github.com/moby/moby/api/types/container"
+	"github.com/moby/moby/client"
 	"github.com/sirupsen/logrus"
 )
 
@@ -26,8 +27,8 @@ func TestRunContainer_Success(t *testing.T) {
 
 func TestRunContainer_CreateError(t *testing.T) {
 	mock := &MockClient{
-		ContainerCreateFn: func(ctx context.Context, config *containertypes.Config, hc *containertypes.HostConfig, name string) (containertypes.CreateResponse, error) {
-			return containertypes.CreateResponse{}, fmt.Errorf("boom")
+		ContainerCreateFn: func(_ context.Context, _ client.ContainerCreateOptions) (client.ContainerCreateResult, error) {
+			return client.ContainerCreateResult{}, fmt.Errorf("boom")
 		},
 	}
 	err := RunContainer(quiet(), mock, &Submission{Timeout: 5})
@@ -39,12 +40,12 @@ func TestRunContainer_CreateError(t *testing.T) {
 func TestRunContainer_StartError_CleansUp(t *testing.T) {
 	removed := false
 	mock := &MockClient{
-		ContainerStartFn: func(context.Context, string, containertypes.StartOptions) error {
-			return fmt.Errorf("start fail")
+		ContainerStartFn: func(context.Context, string, client.ContainerStartOptions) (client.ContainerStartResult, error) {
+			return client.ContainerStartResult{}, fmt.Errorf("start fail")
 		},
-		ContainerRemoveFn: func(context.Context, string, containertypes.RemoveOptions) error {
+		ContainerRemoveFn: func(context.Context, string, client.ContainerRemoveOptions) (client.ContainerRemoveResult, error) {
 			removed = true
-			return nil
+			return client.ContainerRemoveResult{}, nil
 		},
 	}
 	err := RunContainer(quiet(), mock, &Submission{Timeout: 5})
@@ -58,10 +59,10 @@ func TestRunContainer_StartError_CleansUp(t *testing.T) {
 
 func TestRunContainer_NonZeroExit_NoError(t *testing.T) {
 	mock := &MockClient{
-		ContainerWaitFn: func(context.Context, string, containertypes.WaitCondition) (<-chan containertypes.WaitResponse, <-chan error) {
-			ch := make(chan containertypes.WaitResponse, 1)
-			ch <- containertypes.WaitResponse{StatusCode: 1}
-			return ch, nil
+		ContainerWaitFn: func(context.Context, string, client.ContainerWaitOptions) client.ContainerWaitResult {
+			ch := make(chan container.WaitResponse, 1)
+			ch <- container.WaitResponse{StatusCode: 1}
+			return client.ContainerWaitResult{Result: ch}
 		},
 	}
 	if err := RunContainer(quiet(), mock, &Submission{Timeout: 5}); err != nil {
@@ -71,10 +72,10 @@ func TestRunContainer_NonZeroExit_NoError(t *testing.T) {
 
 func TestRunContainer_WaitError(t *testing.T) {
 	mock := &MockClient{
-		ContainerWaitFn: func(context.Context, string, containertypes.WaitCondition) (<-chan containertypes.WaitResponse, <-chan error) {
-			ch := make(chan error, 1)
-			ch <- fmt.Errorf("wait fail")
-			return nil, ch
+		ContainerWaitFn: func(context.Context, string, client.ContainerWaitOptions) client.ContainerWaitResult {
+			errCh := make(chan error, 1)
+			errCh <- fmt.Errorf("wait fail")
+			return client.ContainerWaitResult{Error: errCh}
 		},
 	}
 	err := RunContainer(quiet(), mock, &Submission{Timeout: 5})
@@ -92,9 +93,9 @@ func TestRunContainer_DefaultTimeout(t *testing.T) {
 func TestRunContainer_CleanupForceRemove(t *testing.T) {
 	forced := false
 	mock := &MockClient{
-		ContainerRemoveFn: func(_ context.Context, _ string, opts containertypes.RemoveOptions) error {
+		ContainerRemoveFn: func(_ context.Context, _ string, opts client.ContainerRemoveOptions) (client.ContainerRemoveResult, error) {
 			forced = opts.Force
-			return nil
+			return client.ContainerRemoveResult{}, nil
 		},
 	}
 	RunContainer(quiet(), mock, &Submission{Timeout: 5})

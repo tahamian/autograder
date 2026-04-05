@@ -6,10 +6,10 @@ import (
 	flatbuffers "github.com/google/flatbuffers/go"
 )
 
-/// Lab assignment exposed via GET /api/labs.
+// / Lab assignment exposed via GET /api/labs.
 type LabT struct {
-	Id string `json:"id"`
-	Name string `json:"name"`
+	Id               string `json:"id"`
+	Name             string `json:"name"`
 	ProblemStatement string `json:"problem_statement"`
 }
 
@@ -125,12 +125,13 @@ func LabAddProblemStatement(builder *flatbuffers.Builder, problemStatement flatb
 func LabEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()
 }
-/// Grading result for a single test case.
+
+// / Grading result for a single test case.
 type EvaluationT struct {
-	Type string `json:"type"`
-	Name string `json:"name"`
-	Actual string `json:"actual"`
-	Status string `json:"status"`
+	Type   string  `json:"type"`
+	Name   string  `json:"name"`
+	Actual string  `json:"actual"`
+	Status string  `json:"status"`
 	Points float32 `json:"points"`
 }
 
@@ -280,10 +281,11 @@ func EvaluationAddPoints(builder *flatbuffers.Builder, points float32) {
 func EvaluationEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()
 }
-/// Full grading result returned by POST /api/submit.
+
+// / Full grading result returned by POST /api/submit.
 type GradeResultT struct {
 	Evaluations []*EvaluationT `json:"evaluations"`
-	TotalPoints float32 `json:"total_points"`
+	TotalPoints float32        `json:"total_points"`
 }
 
 func (t *GradeResultT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
@@ -411,7 +413,8 @@ func GradeResultAddTotalPoints(builder *flatbuffers.Builder, totalPoints float32
 func GradeResultEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()
 }
-/// Standard API error response.
+
+// / Standard API error response.
 type APIErrorT struct {
 	Error string `json:"error"`
 }
@@ -494,9 +497,10 @@ func APIErrorAddError(builder *flatbuffers.Builder, error flatbuffers.UOffsetT) 
 func APIErrorEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()
 }
-/// Typed argument for a function call.
+
+// / Typed argument for a function call.
 type FunctionArgT struct {
-	Type string `json:"type"`
+	Type  string `json:"type"`
 	Value string `json:"value"`
 }
 
@@ -595,11 +599,12 @@ func FunctionArgAddValue(builder *flatbuffers.Builder, value flatbuffers.UOffset
 func FunctionArgEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()
 }
-/// Function call to be tested.
+
+// / Function call to be tested.
 type FunctionT struct {
-	FunctionName string `json:"function_name"`
+	FunctionName string          `json:"function_name"`
 	FunctionArgs []*FunctionArgT `json:"function_args"`
-	TestcaseName string `json:"testcase_name"`
+	TestcaseName string          `json:"testcase_name"`
 }
 
 func (t *FunctionT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
@@ -744,10 +749,11 @@ func FunctionAddTestcaseName(builder *flatbuffers.Builder, testcaseName flatbuff
 func FunctionEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()
 }
-/// JSON payload sent to the marker container.
+
+// / JSON payload sent to the marker container.
 type MarkerInputT struct {
-	Filename string `json:"filename"`
-	Stdout bool `json:"stdout"`
+	Filename  string       `json:"filename"`
+	Stdout    bool         `json:"stdout"`
 	Functions []*FunctionT `json:"functions"`
 }
 
@@ -893,11 +899,12 @@ func MarkerInputStartFunctionsVector(builder *flatbuffers.Builder, numElems int)
 func MarkerInputEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()
 }
-/// Single function's output from the marker.
+
+// / Single function's output from the marker.
 type FunctionResultT struct {
-	Result string `json:"result"`
-	Status int32 `json:"status"`
-	Buffer string `json:"buffer"`
+	Result       string `json:"result"`
+	Status       int32  `json:"status"`
+	Buffer       string `json:"buffer"`
 	TestcaseName string `json:"testcase_name"`
 }
 
@@ -1030,9 +1037,10 @@ func FunctionResultAddTestcaseName(builder *flatbuffers.Builder, testcaseName fl
 func FunctionResultEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()
 }
-/// JSON result from the marker container.
+
+// / JSON result from the marker container.
 type MarkerOutputT struct {
-	Stdout string `json:"stdout"`
+	Stdout    string             `json:"stdout"`
 	Functions []*FunctionResultT `json:"functions"`
 }
 

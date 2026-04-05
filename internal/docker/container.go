@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	containertypes "github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/mount"
+	"github.com/moby/moby/api/types/container"
+	"github.com/moby/moby/api/types/mount"
+	"github.com/moby/moby/client"
 	"github.com/sirupsen/logrus"
 )
 
@@ -31,14 +32,15 @@ func RunContainer(log *logrus.Logger, cli Client, sub *Submission) error {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	resp, err := cli.ContainerCreate(ctx,
-		&containertypes.Config{
+	resp, err := cli.ContainerCreate(ctx, client.ContainerCreateOptions{
+		Name: sub.ContainerName,
+		Config: &container.Config{
 			Image:        sub.ImageName,
 			Tty:          false,
 			AttachStderr: true,
 			AttachStdout: true,
 		},
-		&containertypes.HostConfig{
+		HostConfig: &container.HostConfig{
 			Mounts: []mount.Mount{
 				{
 					Type:   mount.TypeBind,
@@ -46,14 +48,13 @@ func RunContainer(log *logrus.Logger, cli Client, sub *Submission) error {
 					Target: sub.TargetDir,
 				},
 			},
-			Resources: containertypes.Resources{
-				Memory:   256 * 1024 * 1024, // 256 MB
-				NanoCPUs: 1e9,               // 1 CPU
+			Resources: container.Resources{
+				Memory:   256 * 1024 * 1024,
+				NanoCPUs: 1e9,
 			},
 			NetworkMode: "none",
 		},
-		sub.ContainerName,
-	)
+	})
 	if err != nil {
 		return fmt.Errorf("creating container: %w", err)
 	}
@@ -62,22 +63,25 @@ func RunContainer(log *logrus.Logger, cli Client, sub *Submission) error {
 	defer func() {
 		rmCtx, rmCancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer rmCancel()
-		if err := cli.ContainerRemove(rmCtx, containerID, containertypes.RemoveOptions{Force: true}); err != nil {
+		if _, err := cli.ContainerRemove(rmCtx, containerID, client.ContainerRemoveOptions{Force: true}); err != nil {
 			log.WithError(err).Warn("failed to remove container")
 		}
 	}()
 
-	if err := cli.ContainerStart(ctx, containerID, containertypes.StartOptions{}); err != nil {
+	if _, err := cli.ContainerStart(ctx, containerID, client.ContainerStartOptions{}); err != nil {
 		return fmt.Errorf("starting container: %w", err)
 	}
 
-	statusCh, errCh := cli.ContainerWait(ctx, containerID, containertypes.WaitConditionNotRunning)
+	waitResult := cli.ContainerWait(ctx, containerID, client.ContainerWaitOptions{
+		Condition: container.WaitConditionNotRunning,
+	})
+
 	select {
-	case err := <-errCh:
+	case err := <-waitResult.Error:
 		if err != nil {
-			return fmt.Errorf("waiting for container: %w", err)
+			return fmt.Errorf("container wait error: %w", err)
 		}
-	case status := <-statusCh:
+	case status := <-waitResult.Result:
 		if status.StatusCode != 0 {
 			log.WithField("exit_code", status.StatusCode).Warn("container exited with non-zero status")
 		}

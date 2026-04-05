@@ -4,77 +4,68 @@ import (
 	"context"
 	"io"
 
-	"github.com/docker/docker/api/types"
-	containertypes "github.com/docker/docker/api/types/container"
-	imagetypes "github.com/docker/docker/api/types/image"
+	"github.com/moby/moby/api/types/container"
+	"github.com/moby/moby/client"
 )
 
 // MockClient implements Client for testing.
 type MockClient struct {
-	ImageListFn       func(ctx context.Context, options imagetypes.ListOptions) ([]imagetypes.Summary, error)
-	ImageRemoveFn     func(ctx context.Context, imageID string, options imagetypes.RemoveOptions) ([]imagetypes.DeleteResponse, error)
-	ImageBuildFn      func(ctx context.Context, buildContext io.Reader, options types.ImageBuildOptions) (types.ImageBuildResponse, error)
-	ContainerCreateFn func(ctx context.Context, config *containertypes.Config, hostConfig *containertypes.HostConfig, containerName string) (containertypes.CreateResponse, error)
-	ContainerStartFn  func(ctx context.Context, containerID string, options containertypes.StartOptions) error
-	ContainerWaitFn   func(ctx context.Context, containerID string, condition containertypes.WaitCondition) (<-chan containertypes.WaitResponse, <-chan error)
-	ContainerLogsFn   func(ctx context.Context, containerID string, options containertypes.LogsOptions) (io.ReadCloser, error)
-	ContainerRemoveFn func(ctx context.Context, containerID string, options containertypes.RemoveOptions) error
+	ImageListFn       func(ctx context.Context, opts client.ImageListOptions) (client.ImageListResult, error)
+	ImageRemoveFn     func(ctx context.Context, id string, opts client.ImageRemoveOptions) (client.ImageRemoveResult, error)
+	ImageBuildFn      func(ctx context.Context, buildContext io.Reader, opts client.ImageBuildOptions) (client.ImageBuildResult, error)
+	ContainerCreateFn func(ctx context.Context, opts client.ContainerCreateOptions) (client.ContainerCreateResult, error)
+	ContainerStartFn  func(ctx context.Context, id string, opts client.ContainerStartOptions) (client.ContainerStartResult, error)
+	ContainerWaitFn   func(ctx context.Context, id string, opts client.ContainerWaitOptions) client.ContainerWaitResult
+	ContainerRemoveFn func(ctx context.Context, id string, opts client.ContainerRemoveOptions) (client.ContainerRemoveResult, error)
 }
 
-func (m *MockClient) ImageList(ctx context.Context, options imagetypes.ListOptions) ([]imagetypes.Summary, error) {
+func (m *MockClient) ImageList(ctx context.Context, opts client.ImageListOptions) (client.ImageListResult, error) {
 	if m.ImageListFn != nil {
-		return m.ImageListFn(ctx, options)
+		return m.ImageListFn(ctx, opts)
 	}
-	return nil, nil
+	return client.ImageListResult{}, nil
 }
 
-func (m *MockClient) ImageRemove(ctx context.Context, imageID string, options imagetypes.RemoveOptions) ([]imagetypes.DeleteResponse, error) {
+func (m *MockClient) ImageRemove(ctx context.Context, id string, opts client.ImageRemoveOptions) (client.ImageRemoveResult, error) {
 	if m.ImageRemoveFn != nil {
-		return m.ImageRemoveFn(ctx, imageID, options)
+		return m.ImageRemoveFn(ctx, id, opts)
 	}
-	return nil, nil
+	return client.ImageRemoveResult{}, nil
 }
 
-func (m *MockClient) ImageBuild(ctx context.Context, buildContext io.Reader, options types.ImageBuildOptions) (types.ImageBuildResponse, error) {
+func (m *MockClient) ImageBuild(ctx context.Context, buildContext io.Reader, opts client.ImageBuildOptions) (client.ImageBuildResult, error) {
 	if m.ImageBuildFn != nil {
-		return m.ImageBuildFn(ctx, buildContext, options)
+		return m.ImageBuildFn(ctx, buildContext, opts)
 	}
-	return types.ImageBuildResponse{Body: io.NopCloser(io.Reader(nil))}, nil
+	return client.ImageBuildResult{Body: io.NopCloser(io.Reader(nil))}, nil
 }
 
-func (m *MockClient) ContainerCreate(ctx context.Context, config *containertypes.Config, hostConfig *containertypes.HostConfig, containerName string) (containertypes.CreateResponse, error) {
+func (m *MockClient) ContainerCreate(ctx context.Context, opts client.ContainerCreateOptions) (client.ContainerCreateResult, error) {
 	if m.ContainerCreateFn != nil {
-		return m.ContainerCreateFn(ctx, config, hostConfig, containerName)
+		return m.ContainerCreateFn(ctx, opts)
 	}
-	return containertypes.CreateResponse{ID: "mock-id"}, nil
+	return client.ContainerCreateResult{ID: "mock-id"}, nil
 }
 
-func (m *MockClient) ContainerStart(ctx context.Context, containerID string, options containertypes.StartOptions) error {
+func (m *MockClient) ContainerStart(ctx context.Context, id string, opts client.ContainerStartOptions) (client.ContainerStartResult, error) {
 	if m.ContainerStartFn != nil {
-		return m.ContainerStartFn(ctx, containerID, options)
+		return m.ContainerStartFn(ctx, id, opts)
 	}
-	return nil
+	return client.ContainerStartResult{}, nil
 }
 
-func (m *MockClient) ContainerWait(ctx context.Context, containerID string, condition containertypes.WaitCondition) (<-chan containertypes.WaitResponse, <-chan error) {
+func (m *MockClient) ContainerWait(ctx context.Context, id string, opts client.ContainerWaitOptions) client.ContainerWaitResult {
 	if m.ContainerWaitFn != nil {
-		return m.ContainerWaitFn(ctx, containerID, condition)
+		return m.ContainerWaitFn(ctx, id, opts)
 	}
-	ch := make(chan containertypes.WaitResponse, 1)
-	ch <- containertypes.WaitResponse{StatusCode: 0}
-	return ch, nil
+	ch := make(chan container.WaitResponse, 1)
+	ch <- container.WaitResponse{StatusCode: 0}
+	return client.ContainerWaitResult{Result: ch}
 }
 
-func (m *MockClient) ContainerLogs(ctx context.Context, containerID string, options containertypes.LogsOptions) (io.ReadCloser, error) {
-	if m.ContainerLogsFn != nil {
-		return m.ContainerLogsFn(ctx, containerID, options)
-	}
-	return io.NopCloser(io.Reader(nil)), nil
-}
-
-func (m *MockClient) ContainerRemove(ctx context.Context, containerID string, options containertypes.RemoveOptions) error {
+func (m *MockClient) ContainerRemove(ctx context.Context, id string, opts client.ContainerRemoveOptions) (client.ContainerRemoveResult, error) {
 	if m.ContainerRemoveFn != nil {
-		return m.ContainerRemoveFn(ctx, containerID, options)
+		return m.ContainerRemoveFn(ctx, id, opts)
 	}
-	return nil
+	return client.ContainerRemoveResult{}, nil
 }

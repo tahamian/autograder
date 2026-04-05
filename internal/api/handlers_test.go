@@ -12,13 +12,10 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
-	"github.com/docker/docker/api/types"
-	containertypes "github.com/docker/docker/api/types/container"
-	imagetypes "github.com/docker/docker/api/types/image"
 	"github.com/gorilla/mux"
+	"github.com/moby/moby/client"
 	"github.com/sirupsen/logrus"
 )
 
@@ -29,32 +26,28 @@ func quiet() *logrus.Logger {
 }
 
 // mockDockerClient satisfies docker.Client for handler tests.
-// Returns an error so we can test that validation passes before container run.
 type mockDockerClient struct{}
 
-func (m *mockDockerClient) ImageList(_ context.Context, _ imagetypes.ListOptions) ([]imagetypes.Summary, error) {
-	return nil, nil
+func (m *mockDockerClient) ImageList(_ context.Context, _ client.ImageListOptions) (client.ImageListResult, error) {
+	return client.ImageListResult{}, nil
 }
-func (m *mockDockerClient) ImageRemove(_ context.Context, _ string, _ imagetypes.RemoveOptions) ([]imagetypes.DeleteResponse, error) {
-	return nil, nil
+func (m *mockDockerClient) ImageRemove(_ context.Context, _ string, _ client.ImageRemoveOptions) (client.ImageRemoveResult, error) {
+	return client.ImageRemoveResult{}, nil
 }
-func (m *mockDockerClient) ImageBuild(_ context.Context, _ io.Reader, _ types.ImageBuildOptions) (types.ImageBuildResponse, error) {
-	return types.ImageBuildResponse{Body: io.NopCloser(strings.NewReader(""))}, nil
+func (m *mockDockerClient) ImageBuild(_ context.Context, _ io.Reader, _ client.ImageBuildOptions) (client.ImageBuildResult, error) {
+	return client.ImageBuildResult{Body: io.NopCloser(io.Reader(nil))}, nil
 }
-func (m *mockDockerClient) ContainerCreate(_ context.Context, _ *containertypes.Config, _ *containertypes.HostConfig, _ string) (containertypes.CreateResponse, error) {
-	return containertypes.CreateResponse{ID: "test"}, nil
+func (m *mockDockerClient) ContainerCreate(_ context.Context, _ client.ContainerCreateOptions) (client.ContainerCreateResult, error) {
+	return client.ContainerCreateResult{ID: "test"}, nil
 }
-func (m *mockDockerClient) ContainerStart(_ context.Context, _ string, _ containertypes.StartOptions) error {
-	return fmt.Errorf("no docker in test")
+func (m *mockDockerClient) ContainerStart(_ context.Context, _ string, _ client.ContainerStartOptions) (client.ContainerStartResult, error) {
+	return client.ContainerStartResult{}, fmt.Errorf("no docker in test")
 }
-func (m *mockDockerClient) ContainerWait(_ context.Context, _ string, _ containertypes.WaitCondition) (<-chan containertypes.WaitResponse, <-chan error) {
-	return nil, nil
+func (m *mockDockerClient) ContainerWait(_ context.Context, _ string, _ client.ContainerWaitOptions) client.ContainerWaitResult {
+	return client.ContainerWaitResult{}
 }
-func (m *mockDockerClient) ContainerLogs(_ context.Context, _ string, _ containertypes.LogsOptions) (io.ReadCloser, error) {
-	return nil, nil
-}
-func (m *mockDockerClient) ContainerRemove(_ context.Context, _ string, _ containertypes.RemoveOptions) error {
-	return nil
+func (m *mockDockerClient) ContainerRemove(_ context.Context, _ string, _ client.ContainerRemoveOptions) (client.ContainerRemoveResult, error) {
+	return client.ContainerRemoveResult{}, nil
 }
 
 func testHandler() *handler {
