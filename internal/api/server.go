@@ -47,10 +47,11 @@ func NewServer(cfg *config.Config, log *logrus.Logger, dc docker.Client, g grade
 	configureLogger(log)
 
 	h := &handler{
-		cfg:    cfg,
-		log:    log,
-		docker: dc,
-		grader: g,
+		cfg:        cfg,
+		log:        log,
+		docker:     dc,
+		grader:     g,
+		submission: NewSubmissionService(cfg, log, dc, g),
 	}
 
 	store, rate, err := initializeRedis(log, &cfg.Redis)
@@ -60,6 +61,7 @@ func NewServer(cfg *config.Config, log *logrus.Logger, dc docker.Client, g grade
 	mw := stdlib.NewMiddleware(limiter.New(*store, *rate))
 
 	router := mux.NewRouter()
+	router.Use(RequestID)
 
 	// API routes
 	api := router.PathPrefix("/api").Subrouter()
@@ -69,7 +71,7 @@ func NewServer(cfg *config.Config, log *logrus.Logger, dc docker.Client, g grade
 	api.HandleFunc("/submit", h.submit).Methods("POST")
 
 	// Serve frontend (Vite build output)
-	spa := &spaHandler{staticDir: "web/dist", indexPath: "index.html"}
+	spa := newSPAHandler("web/dist", "index.html")
 	router.PathPrefix("/").Handler(spa)
 
 	addr := cfg.Server.Host + ":" + cfg.Server.Port
@@ -110,21 +112,30 @@ func configureLogger(log *logrus.Logger) {
 
 // spaHandler serves a single-page application, falling back to index.html.
 type spaHandler struct {
-	staticDir string
-	indexPath string
+	staticDir  string
+	indexPath  string
+	fileServer http.Handler
+}
+
+func newSPAHandler(staticDir, indexPath string) *spaHandler {
+	return &spaHandler{
+		staticDir:  staticDir,
+		indexPath:  indexPath,
+		fileServer: http.FileServer(http.Dir(staticDir)),
+	}
 }
 
 func (s *spaHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	p := path.Join(s.staticDir, r.URL.Path)
-
 	// If the file exists, serve it directly
-	if info, err := http.Dir(s.staticDir).Open(r.URL.Path); err == nil {
-		defer info.Close()
-		http.FileServer(http.Dir(s.staticDir)).ServeHTTP(w, r)
-		return
+	if f, err := http.Dir(s.staticDir).Open(r.URL.Path); err == nil {
+		defer f.Close()
+		// Check it's not a directory
+		if stat, err := f.Stat(); err == nil && !stat.IsDir() {
+			s.fileServer.ServeHTTP(w, r)
+			return
+		}
 	}
 
-	// Otherwise serve index.html for client-side routing
+	// Fallback to index.html for client-side routing
 	http.ServeFile(w, r, path.Join(s.staticDir, s.indexPath))
-	_ = p
 }

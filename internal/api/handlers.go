@@ -6,25 +6,21 @@ import (
 	"autograder/internal/grader"
 	"autograder/internal/models"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
-	"math/rand"
 	"net/http"
-	"os"
-	"path/filepath"
-	"strconv"
-	"strings"
-	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
 )
 
 type handler struct {
-	cfg    *config.Config
-	log    *logrus.Logger
-	docker docker.Client
-	grader grader.Grader
+	cfg        *config.Config
+	log        *logrus.Logger
+	docker     docker.Client
+	grader     grader.Grader
+	submission *SubmissionService
 }
 
 // --- JSON helpers ---
@@ -42,7 +38,7 @@ func jsonError(w http.ResponseWriter, status int, msg string) {
 
 // --- Endpoints ---
 
-// GET /api/labs — returns []models.LabT
+// GET /api/labs
 func (h *handler) listLabs(w http.ResponseWriter, r *http.Request) {
 	out := make([]*models.LabT, len(h.cfg.Labs))
 	for i, l := range h.cfg.Labs {
@@ -51,7 +47,7 @@ func (h *handler) listLabs(w http.ResponseWriter, r *http.Request) {
 	jsonOK(w, out)
 }
 
-// GET /api/labs/{id} — returns a single models.LabT
+// GET /api/labs/{id}
 func (h *handler) getLab(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
@@ -66,11 +62,6 @@ func (h *handler) getLab(w http.ResponseWriter, r *http.Request) {
 }
 
 // POST /api/submit
-// Accepts either:
-//   - multipart form with "file" field (file upload)
-//   - multipart form with "code" field (inline code text)
-//
-// Both require "lab_id". When using "code", "filename" is optional (defaults to "solution.py").
 func (h *handler) submit(w http.ResponseWriter, r *http.Request) {
 	// 20 KB limit
 	r.Body = http.MaxBytesReader(w, r.Body, 20*1024)
@@ -86,20 +77,18 @@ func (h *handler) submit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Resolve file content and name from either "file" upload or "code" text
+	// Parse code or file
 	var fileContent []byte
 	var fileName string
 
 	code := r.FormValue("code")
 	if code != "" {
-		// Inline code submission
 		fileContent = []byte(code)
 		fileName = r.FormValue("filename")
 		if fileName == "" {
 			fileName = "solution.py"
 		}
 	} else {
-		// File upload submission
 		file, fh, err := r.FormFile("file")
 		if err != nil {
 			jsonError(w, http.StatusBadRequest, "Provide either a 'file' upload or 'code' text field")
@@ -115,85 +104,19 @@ func (h *handler) submit(w http.ResponseWriter, r *http.Request) {
 		fileName = fh.Filename
 	}
 
-	// Validate extension
-	exts := h.cfg.Marker.AllowedExtensions
-	if len(exts) == 0 {
-		exts = []string{"py"}
-	}
-	if !hasAllowedExtension(fileName, exts) {
-		jsonError(w, http.StatusBadRequest, fmt.Sprintf("Invalid file extension. Allowed: %v", exts))
-		return
-	}
-
-	// Create submission directory
-	id := time.Now().Format("20060102150405") + strconv.Itoa(rand.Intn(10000))
-	subDir := filepath.Join(h.cfg.Marker.SubmissionsFolder, id)
-	if err := os.MkdirAll(subDir, os.ModePerm); err != nil {
-		h.log.WithError(err).Error("failed to create submission dir")
-		jsonError(w, http.StatusInternalServerError, "Server error")
-		return
-	}
-	defer os.RemoveAll(subDir)
-
-	// Write file
-	destPath := filepath.Join(subDir, fileName)
-	if err := os.WriteFile(destPath, fileContent, 0644); err != nil {
-		h.log.WithError(err).Error("failed to write file")
-		jsonError(w, http.StatusInternalServerError, "Server error")
-		return
-	}
-
-	absDir, err := filepath.Abs(subDir)
+	// Delegate to SubmissionService
+	result, err := h.submission.Process(
+		SubmissionRequest{LabID: labID, Code: fileContent, Filename: fileName},
+		&lab,
+		h.cfg.Marker.ImageName,
+	)
 	if err != nil {
-		jsonError(w, http.StatusInternalServerError, "Server error")
-		return
-	}
-
-	// Build marker input
-	input := h.grader.BuildInput(&lab)
-	input.Filename = h.cfg.Marker.MountPath + fileName
-	if err := grader.WriteInput(input, filepath.Join(absDir, "input.json")); err != nil {
-		h.log.WithError(err).Error("failed to write input")
-		jsonError(w, http.StatusInternalServerError, "Server error")
-		return
-	}
-
-	// Resolve bind mount path for Docker
-	bindDir := absDir
-	if h.cfg.Marker.HostSubmissionsFolder != "" {
-		bindDir = filepath.Join(h.cfg.Marker.HostSubmissionsFolder, id)
-	}
-
-	// Run container
-	timeout := h.cfg.Marker.ContainerTimeout
-	if timeout <= 0 {
-		timeout = 10
-	}
-	sub := &docker.Submission{
-		ContainerName: id,
-		ImageName:     h.cfg.Marker.ImageName,
-		TargetDir:     h.cfg.Marker.MountPath,
-		BindedDir:     bindDir,
-		Timeout:       timeout,
-	}
-	if err := docker.RunContainer(h.log, h.docker, sub); err != nil {
-		h.log.WithError(err).Error("container failed")
-		jsonError(w, http.StatusInternalServerError, "Grading failed: "+err.Error())
-		return
-	}
-
-	// Read & evaluate output
-	output, err := h.grader.ReadOutput(filepath.Join(absDir, "output.json"))
-	if err != nil {
-		h.log.WithError(err).Error("failed to read output")
-		jsonError(w, http.StatusInternalServerError, "Failed to read grading results")
-		return
-	}
-
-	result, err := h.grader.Evaluate(&lab, output)
-	if err != nil {
-		h.log.WithError(err).Error("evaluation failed")
-		jsonError(w, http.StatusInternalServerError, "Evaluation failed")
+		var ve *ValidationError
+		if errors.As(err, &ve) {
+			jsonError(w, http.StatusBadRequest, err.Error())
+		} else {
+			jsonError(w, http.StatusInternalServerError, err.Error())
+		}
 		return
 	}
 
@@ -209,18 +132,4 @@ func findLab(labs []config.Lab, id string) (config.Lab, error) {
 		}
 	}
 	return config.Lab{}, fmt.Errorf("invalid lab ID: %q", id)
-}
-
-func hasAllowedExtension(filename string, exts []string) bool {
-	parts := strings.Split(filename, ".")
-	if len(parts) < 2 {
-		return false
-	}
-	ext := parts[len(parts)-1]
-	for _, e := range exts {
-		if ext == e {
-			return true
-		}
-	}
-	return false
 }
