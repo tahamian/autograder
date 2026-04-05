@@ -16,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
 )
 
@@ -50,29 +51,31 @@ func (h *handler) listLabs(w http.ResponseWriter, r *http.Request) {
 	jsonOK(w, out)
 }
 
+// GET /api/labs/{id} — returns a single models.LabT
+func (h *handler) getLab(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	lab, err := findLab(h.cfg.Labs, id)
+	if err != nil {
+		jsonError(w, http.StatusNotFound, fmt.Sprintf("Lab %q not found", id))
+		return
+	}
+
+	jsonOK(w, config.LabToModel(&lab))
+}
+
 // POST /api/submit
+// Accepts either:
+//   - multipart form with "file" field (file upload)
+//   - multipart form with "code" field (inline code text)
+//
+// Both require "lab_id". When using "code", "filename" is optional (defaults to "solution.py").
 func (h *handler) submit(w http.ResponseWriter, r *http.Request) {
 	// 20 KB limit
 	r.Body = http.MaxBytesReader(w, r.Body, 20*1024)
 	if err := r.ParseMultipartForm(20 * 1024); err != nil {
-		jsonError(w, http.StatusBadRequest, "File too large or bad request")
-		return
-	}
-
-	file, fh, err := r.FormFile("file")
-	if err != nil {
-		jsonError(w, http.StatusBadRequest, "Missing file in request")
-		return
-	}
-	defer file.Close()
-
-	// Validate extension
-	exts := h.cfg.Marker.AllowedExtensions
-	if len(exts) == 0 {
-		exts = []string{"py"}
-	}
-	if !hasAllowedExtension(fh.Filename, exts) {
-		jsonError(w, http.StatusBadRequest, fmt.Sprintf("Invalid file extension. Allowed: %v", exts))
+		jsonError(w, http.StatusBadRequest, "Request too large or malformed")
 		return
 	}
 
@@ -80,6 +83,45 @@ func (h *handler) submit(w http.ResponseWriter, r *http.Request) {
 	lab, err := findLab(h.cfg.Labs, labID)
 	if err != nil {
 		jsonError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	// Resolve file content and name from either "file" upload or "code" text
+	var fileContent []byte
+	var fileName string
+
+	code := r.FormValue("code")
+	if code != "" {
+		// Inline code submission
+		fileContent = []byte(code)
+		fileName = r.FormValue("filename")
+		if fileName == "" {
+			fileName = "solution.py"
+		}
+	} else {
+		// File upload submission
+		file, fh, err := r.FormFile("file")
+		if err != nil {
+			jsonError(w, http.StatusBadRequest, "Provide either a 'file' upload or 'code' text field")
+			return
+		}
+		defer file.Close()
+
+		fileContent, err = io.ReadAll(file)
+		if err != nil {
+			jsonError(w, http.StatusBadRequest, "Failed to read uploaded file")
+			return
+		}
+		fileName = fh.Filename
+	}
+
+	// Validate extension
+	exts := h.cfg.Marker.AllowedExtensions
+	if len(exts) == 0 {
+		exts = []string{"py"}
+	}
+	if !hasAllowedExtension(fileName, exts) {
+		jsonError(w, http.StatusBadRequest, fmt.Sprintf("Invalid file extension. Allowed: %v", exts))
 		return
 	}
 
@@ -93,21 +135,13 @@ func (h *handler) submit(w http.ResponseWriter, r *http.Request) {
 	}
 	defer os.RemoveAll(subDir)
 
-	// Write uploaded file
-	destPath := filepath.Join(subDir, fh.Filename)
-	dst, err := os.Create(destPath)
-	if err != nil {
-		h.log.WithError(err).Error("failed to create file")
-		jsonError(w, http.StatusInternalServerError, "Server error")
-		return
-	}
-	if _, err := io.Copy(dst, file); err != nil {
-		dst.Close()
+	// Write file
+	destPath := filepath.Join(subDir, fileName)
+	if err := os.WriteFile(destPath, fileContent, 0644); err != nil {
 		h.log.WithError(err).Error("failed to write file")
 		jsonError(w, http.StatusInternalServerError, "Server error")
 		return
 	}
-	dst.Close()
 
 	absDir, err := filepath.Abs(subDir)
 	if err != nil {
@@ -117,16 +151,14 @@ func (h *handler) submit(w http.ResponseWriter, r *http.Request) {
 
 	// Build marker input
 	input := h.grader.BuildInput(&lab)
-	input.Filename = h.cfg.Marker.MountPath + fh.Filename
+	input.Filename = h.cfg.Marker.MountPath + fileName
 	if err := grader.WriteInput(input, filepath.Join(absDir, "input.json")); err != nil {
 		h.log.WithError(err).Error("failed to write input")
 		jsonError(w, http.StatusInternalServerError, "Server error")
 		return
 	}
 
-	// Resolve the bind mount path for Docker.
-	// When running inside a container with a mounted Docker socket,
-	// HostSubmissionsFolder maps the container-local path to the host path.
+	// Resolve bind mount path for Docker
 	bindDir := absDir
 	if h.cfg.Marker.HostSubmissionsFolder != "" {
 		bindDir = filepath.Join(h.cfg.Marker.HostSubmissionsFolder, id)

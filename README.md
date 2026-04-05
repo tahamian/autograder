@@ -175,27 +175,37 @@ labs:
 | FlatBuffers  | 25+     | `brew install flatbuffers` |
 | Poetry       | 2.x     | `pip install poetry` |
 
-### Running locally
+### Development with hot-reload (Docker)
 
 ```bash
-# Start just Redis
-docker compose up redis -d
+make dev
+```
 
+This starts everything in Docker with automatic rebuilds:
+
+- **Go** — `air` watches `.go`/`.yml` files and rebuilds/restarts on change
+- **Frontend** — Vite dev server with HMR on **http://localhost:3000** (proxies `/api` → `:9090`)
+- **Marker** — Docker Compose `watch` rebuilds the image when `marker/` files change
+- **Redis** — standard service
+
+### Development without Docker (local tools)
+
+```bash
+make dev-local
+```
+
+Starts Redis in Docker, Go server and Vite dev server locally.
+Requires all prerequisites installed on your machine.
+
+### Production-like local run
+
+```bash
 # Build marker image
 docker compose build marker
 
 # Build frontend + backend and run
 make run
 ```
-
-### Development with hot-reload
-
-```bash
-make dev
-```
-
-Starts Redis, Go API server, and Vite dev server in parallel.
-Open **http://localhost:3000** — Vite proxies `/api` to the Go server on `:9090`.
 
 ### Code Generation (FlatBuffers)
 
@@ -213,7 +223,8 @@ make check-generate   # verify no unstaged changes (used in CI)
 | Command            | Description                                              |
 |--------------------|----------------------------------------------------------|
 | `make run`         | Build everything and start the server                    |
-| `make dev`         | Redis + Go + Vite dev server (hot-reload on `:3000`)     |
+| `make dev`         | Docker dev env with hot-reload (air + Vite HMR + watch)  |
+| `make dev-local`   | Local dev with Redis in Docker, Go + Vite on host        |
 | `make build`       | Generate models, build frontend, compile Go binary       |
 | `make test`        | Check generation + Go + frontend + Python tests          |
 | `make lint`        | Check all linting (gofmt, go vet, ESLint, Prettier, yapf, isort) |

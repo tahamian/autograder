@@ -5,13 +5,20 @@
     "build": "deno run -A npm:vite build",
     "preview": "deno run -A npm:vite preview",
     "test": "deno test --allow-read --allow-env src/",
-    "lint": "deno run -A npm:eslint src/",
-    "lint:fix": "deno run -A npm:eslint src/ --fix",
-    "fmt": "deno run -A npm:prettier --write 'src/**/*.ts' index.html",
-    "fmt:check": "deno run -A npm:prettier --check 'src/**/*.ts' index.html"
+    "lint": "deno run -A npm:eslint src/ --ignore-pattern 'src/generated/**'",
+    "lint:fix": "deno run -A npm:eslint src/ --fix --ignore-pattern 'src/generated/**'",
+    "fmt": "deno run -A npm:prettier --write 'src/**/*.{ts,tsx}' index.html",
+    "fmt:check": "deno run -A npm:prettier --check 'src/**/*.{ts,tsx}' index.html"
   },
   "imports": {
     "vite": "npm:vite@^6.3.0",
+    "vite-plugin-solid": "npm:vite-plugin-solid@^2.11.0",
+    "solid-js": "npm:solid-js@^1.9.0",
+    "@solidjs/router": "npm:@solidjs/router@^0.15.0",
+    "@kobalte/core": "npm:@kobalte/core@^0.13.0",
+    "class-variance-authority": "npm:class-variance-authority@^0.7.0",
+    "clsx": "npm:clsx@^2.0.0",
+    "tailwind-merge": "npm:tailwind-merge@^3.0.0",
     "@tailwindcss/vite": "npm:@tailwindcss/vite@^4.1.0",
     "tailwindcss": "npm:tailwindcss@^4.1.0",
     "@std/testing": "jsr:@std/testing@^1",
@@ -22,6 +29,8 @@
     "prettier": "npm:prettier@^3.0.0"
   },
   "compilerOptions": {
+    "jsx": "preserve",
+    "jsxImportSource": "solid-js",
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "strict": true
   }

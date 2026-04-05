@@ -1,9 +1,10 @@
 import { defineConfig } from "vite";
+import solid from "vite-plugin-solid";
 import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
   root: ".",
-  plugins: [tailwindcss()],
+  plugins: [solid(), tailwindcss()],
   build: {
     outDir: "dist",
     emptyOutDir: true,
