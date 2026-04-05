@@ -84,12 +84,9 @@ func TestEvaluate_FunctionCorrect(t *testing.T) {
 		}},
 	}
 	output := &MarkerOutput{
-		Functions: []struct {
-			Result       interface{} `json:"result"`
-			Status       int         `json:"status"`
-			Buffer       string      `json:"buffer"`
-			TestcaseName string      `json:"testcase_name"`
-		}{{Result: "5.0", TestcaseName: "tc"}},
+		Functions: []FunctionOutput{
+			{Result: "5.0", TestcaseName: "tc"},
+		},
 	}
 	result, _ := g.Evaluate(lab, output)
 	if result.TotalPoints != 1 || result.Evaluations[0].Status != "Nice" {
@@ -105,12 +102,9 @@ func TestEvaluate_FunctionNoMatch(t *testing.T) {
 		}},
 	}
 	output := &MarkerOutput{
-		Functions: []struct {
-			Result       interface{} `json:"result"`
-			Status       int         `json:"status"`
-			Buffer       string      `json:"buffer"`
-			TestcaseName string      `json:"testcase_name"`
-		}{{Result: "5", TestcaseName: "other"}},
+		Functions: []FunctionOutput{
+			{Result: "5", TestcaseName: "other"},
+		},
 	}
 	result, _ := g.Evaluate(lab, output)
 	if result.Evaluations[0].Status != "Could not match function to test case" {
@@ -127,12 +121,9 @@ func TestEvaluate_Multiple(t *testing.T) {
 	}
 	output := &MarkerOutput{
 		Stdout: "hi",
-		Functions: []struct {
-			Result       interface{} `json:"result"`
-			Status       int         `json:"status"`
-			Buffer       string      `json:"buffer"`
-			TestcaseName string      `json:"testcase_name"`
-		}{{Result: "42", TestcaseName: "f"}},
+		Functions: []FunctionOutput{
+			{Result: "42", TestcaseName: "f"},
+		},
 	}
 	result, _ := g.Evaluate(lab, output)
 	if result.TotalPoints != 1.0 || len(result.Evaluations) != 2 {
@@ -140,11 +131,65 @@ func TestEvaluate_Multiple(t *testing.T) {
 	}
 }
 
+// #3 — Numeric comparison: float64(5) from JSON should match expected "5.0"
+func TestEvaluate_NumericFloatMatchesString(t *testing.T) {
+	lab := &config.Lab{
+		Testcase: []config.Testcase{{
+			Type: "function", Name: "tc",
+			Expected: []config.Expected{{Feedback: "OK", Points: 1, Values: []string{"5.0"}}},
+		}},
+	}
+	// JSON unmarshals numbers as float64 — "5.0" in Python becomes float64(5) in Go
+	output := &MarkerOutput{
+		Functions: []FunctionOutput{
+			{Result: float64(5), TestcaseName: "tc"},
+		},
+	}
+	result, _ := g.Evaluate(lab, output)
+	if result.TotalPoints != 1 {
+		t.Errorf("expected 1 point for float64(5) matching '5.0', got %f", result.TotalPoints)
+	}
+}
+
+func TestEvaluate_NumericIntMatchesString(t *testing.T) {
+	lab := &config.Lab{
+		Testcase: []config.Testcase{{
+			Type: "function", Name: "tc",
+			Expected: []config.Expected{{Feedback: "OK", Points: 1, Values: []string{"42"}}},
+		}},
+	}
+	output := &MarkerOutput{
+		Functions: []FunctionOutput{
+			{Result: float64(42), TestcaseName: "tc"},
+		},
+	}
+	result, _ := g.Evaluate(lab, output)
+	if result.TotalPoints != 1 {
+		t.Errorf("expected 1 point for float64(42) matching '42', got %f", result.TotalPoints)
+	}
+}
+
+func TestFunctionOutput_Serialization(t *testing.T) {
+	fo := FunctionOutput{
+		Result: "5.0", Status: 0, Buffer: "hello", TestcaseName: "tc1",
+	}
+	data, err := json.Marshal(fo)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var loaded FunctionOutput
+	if err := json.Unmarshal(data, &loaded); err != nil {
+		t.Fatal(err)
+	}
+	if loaded.Result != "5.0" || loaded.Buffer != "hello" || loaded.TestcaseName != "tc1" {
+		t.Errorf("unexpected: %+v", loaded)
+	}
+}
+
 func TestReadOutput(t *testing.T) {
 	dir := t.TempDir()
 	p := filepath.Join(dir, "output.json")
 	os.WriteFile(p, []byte(`{"stdout":"ok","functions":[]}`), 0644)
-
 	out, err := g.ReadOutput(p)
 	if err != nil {
 		t.Fatal(err)
@@ -172,7 +217,6 @@ func TestReadOutput_BadJSON(t *testing.T) {
 func TestWriteInput(t *testing.T) {
 	dir := t.TempDir()
 	p := filepath.Join(dir, "input.json")
-
 	input := &MarkerInput{Filename: "test.py", Stdout: true}
 	if err := WriteInput(input, p); err != nil {
 		t.Fatal(err)

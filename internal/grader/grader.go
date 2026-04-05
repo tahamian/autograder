@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strconv"
 )
 
 // MarkerInput is the JSON payload sent to the marker container.
@@ -16,15 +17,18 @@ type MarkerInput struct {
 	Functions []config.Function `json:"functions"`
 }
 
+// FunctionOutput is a single function's result from the marker container.
+type FunctionOutput struct {
+	Result       interface{} `json:"result"`
+	Status       int         `json:"status"`
+	Buffer       string      `json:"buffer"`
+	TestcaseName string      `json:"testcase_name"`
+}
+
 // MarkerOutput is the JSON result from the marker container.
 type MarkerOutput struct {
-	Stdout    string `json:"stdout"`
-	Functions []struct {
-		Result       interface{} `json:"result"`
-		Status       int         `json:"status"`
-		Buffer       string      `json:"buffer"`
-		TestcaseName string      `json:"testcase_name"`
-	} `json:"functions"`
+	Stdout    string           `json:"stdout"`
+	Functions []FunctionOutput `json:"functions"`
 }
 
 // Grader evaluates marker output against lab test cases.
@@ -119,7 +123,7 @@ func evaluateFunction(tc *config.Testcase, output *MarkerOutput) *models.Evaluat
 			eval.Actual = fmt.Sprintf("%v", fn.Result)
 			for _, exp := range tc.Expected {
 				for _, v := range exp.Values {
-					if fmt.Sprintf("%v", v) == fmt.Sprintf("%v", fn.Result) {
+					if valuesMatch(v, fn.Result) {
 						eval.Points = exp.Points
 						eval.Status = exp.Feedback
 						return eval
@@ -135,6 +139,41 @@ func evaluateFunction(tc *config.Testcase, output *MarkerOutput) *models.Evaluat
 		eval.Status = "Incorrect return value"
 	}
 	return eval
+}
+
+// normalizeNumeric attempts to parse a value as float64 for comparison.
+// Returns the float and true if successful, or 0 and false otherwise.
+func normalizeNumeric(v interface{}) (float64, bool) {
+	switch n := v.(type) {
+	case float64:
+		return n, true
+	case float32:
+		return float64(n), true
+	case int:
+		return float64(n), true
+	case int64:
+		return float64(n), true
+	case string:
+		if f, err := strconv.ParseFloat(n, 64); err == nil {
+			return f, true
+		}
+	}
+	return 0, false
+}
+
+func valuesMatch(expected string, actual interface{}) bool {
+	// Exact string match
+	actualStr := fmt.Sprintf("%v", actual)
+	if expected == actualStr {
+		return true
+	}
+	// Numeric comparison: normalize both sides to float64
+	if expF, ok := normalizeNumeric(expected); ok {
+		if actF, ok := normalizeNumeric(actual); ok {
+			return expF == actF
+		}
+	}
+	return false
 }
 
 // WriteInput writes a MarkerInput to a JSON file.

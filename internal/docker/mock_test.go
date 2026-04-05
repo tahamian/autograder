@@ -3,6 +3,7 @@ package docker
 import (
 	"context"
 	"io"
+	"strings"
 
 	"github.com/moby/moby/api/types/container"
 	"github.com/moby/moby/client"
@@ -37,7 +38,7 @@ func (m *MockClient) ImageBuild(ctx context.Context, buildContext io.Reader, opt
 	if m.ImageBuildFn != nil {
 		return m.ImageBuildFn(ctx, buildContext, opts)
 	}
-	return client.ImageBuildResult{Body: io.NopCloser(io.Reader(nil))}, nil
+	return client.ImageBuildResult{Body: io.NopCloser(strings.NewReader("{}"))}, nil
 }
 
 func (m *MockClient) ContainerCreate(ctx context.Context, opts client.ContainerCreateOptions) (client.ContainerCreateResult, error) {

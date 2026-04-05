@@ -68,6 +68,15 @@ func testHandler() *handler {
 		log:    quiet(),
 		grader: &grader.DefaultGrader{},
 		docker: &mockDockerClient{},
+		submission: &SubmissionService{
+			grader:     &grader.DefaultGrader{},
+			docker:     &mockDockerClient{},
+			log:        quiet(),
+			filesDir:   "./test_files/",
+			mountPath:  "/mnt/",
+			extensions: []string{"py"},
+			timeout:    5,
+		},
 	}
 }
 
@@ -340,24 +349,5 @@ func TestFindLab(t *testing.T) {
 	_, err = findLab(labs, "z")
 	if err == nil {
 		t.Error("expected error for missing lab")
-	}
-}
-
-func TestHasAllowedExtension(t *testing.T) {
-	tests := []struct {
-		name string
-		exts []string
-		want bool
-	}{
-		{"script.py", []string{"py"}, true},
-		{"script.js", []string{"py"}, false},
-		{"a.tar.gz", []string{"gz"}, true},
-		{"noext", []string{"py"}, false},
-		{"", []string{"py"}, false},
-	}
-	for _, tt := range tests {
-		if got := hasAllowedExtension(tt.name, tt.exts); got != tt.want {
-			t.Errorf("hasAllowedExtension(%q, %v) = %v, want %v", tt.name, tt.exts, got, tt.want)
-		}
 	}
 }
