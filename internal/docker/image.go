@@ -6,24 +6,23 @@ import (
 	"io"
 	"strings"
 
-	"github.com/docker/docker/api/types"
-	imagetypes "github.com/docker/docker/api/types/image"
 	"github.com/mitchellh/go-homedir"
 	archive "github.com/moby/go-archive"
+	"github.com/moby/moby/client"
 	"github.com/sirupsen/logrus"
 )
 
-// EnsureImage checks if the marker image exists. If it does, it's used as-is
-// (e.g. pre-built by docker compose). If not, it builds it from the marker directory.
+// EnsureImage checks if the marker image exists. If it does, it's used as-is.
+// If not, it builds it from the marker directory.
 func EnsureImage(log *logrus.Logger, cli Client, imageName string) error {
 	ctx := context.Background()
 
-	images, err := cli.ImageList(ctx, imagetypes.ListOptions{All: true})
+	result, err := cli.ImageList(ctx, client.ImageListOptions{All: true})
 	if err != nil {
 		return fmt.Errorf("listing images: %w", err)
 	}
 
-	for _, img := range images {
+	for _, img := range result.Items {
 		if imageTagMatches(imageName, img.RepoTags) {
 			log.WithField("image", imageName).Info("marker image already exists, skipping build")
 			return nil
@@ -48,7 +47,7 @@ func buildImage(log *logrus.Logger, cli Client, imageName string) error {
 	}
 	defer buildCtx.Close()
 
-	resp, err := cli.ImageBuild(ctx, buildCtx, types.ImageBuildOptions{
+	resp, err := cli.ImageBuild(ctx, buildCtx, client.ImageBuildOptions{
 		Dockerfile: "Dockerfile",
 		Tags:       []string{imageName},
 	})

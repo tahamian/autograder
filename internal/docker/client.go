@@ -4,22 +4,18 @@ import (
 	"context"
 	"io"
 
-	"github.com/docker/docker/api/types"
-	containertypes "github.com/docker/docker/api/types/container"
-	imagetypes "github.com/docker/docker/api/types/image"
-	"github.com/docker/docker/client"
+	"github.com/moby/moby/client"
 )
 
 // Client abstracts the Docker API for testing.
 type Client interface {
-	ImageList(ctx context.Context, options imagetypes.ListOptions) ([]imagetypes.Summary, error)
-	ImageRemove(ctx context.Context, imageID string, options imagetypes.RemoveOptions) ([]imagetypes.DeleteResponse, error)
-	ImageBuild(ctx context.Context, buildContext io.Reader, options types.ImageBuildOptions) (types.ImageBuildResponse, error)
-	ContainerCreate(ctx context.Context, config *containertypes.Config, hostConfig *containertypes.HostConfig, containerName string) (containertypes.CreateResponse, error)
-	ContainerStart(ctx context.Context, containerID string, options containertypes.StartOptions) error
-	ContainerWait(ctx context.Context, containerID string, condition containertypes.WaitCondition) (<-chan containertypes.WaitResponse, <-chan error)
-	ContainerLogs(ctx context.Context, containerID string, options containertypes.LogsOptions) (io.ReadCloser, error)
-	ContainerRemove(ctx context.Context, containerID string, options containertypes.RemoveOptions) error
+	ImageList(ctx context.Context, opts client.ImageListOptions) (client.ImageListResult, error)
+	ImageRemove(ctx context.Context, id string, opts client.ImageRemoveOptions) (client.ImageRemoveResult, error)
+	ImageBuild(ctx context.Context, buildContext io.Reader, opts client.ImageBuildOptions) (client.ImageBuildResult, error)
+	ContainerCreate(ctx context.Context, opts client.ContainerCreateOptions) (client.ContainerCreateResult, error)
+	ContainerStart(ctx context.Context, id string, opts client.ContainerStartOptions) (client.ContainerStartResult, error)
+	ContainerWait(ctx context.Context, id string, opts client.ContainerWaitOptions) client.ContainerWaitResult
+	ContainerRemove(ctx context.Context, id string, opts client.ContainerRemoveOptions) (client.ContainerRemoveResult, error)
 }
 
 // RealClient wraps the Docker SDK client.
@@ -38,60 +34,53 @@ func (r *RealClient) ensureClient() error {
 	return nil
 }
 
-func (r *RealClient) ImageList(ctx context.Context, options imagetypes.ListOptions) ([]imagetypes.Summary, error) {
+func (r *RealClient) ImageList(ctx context.Context, opts client.ImageListOptions) (client.ImageListResult, error) {
 	if err := r.ensureClient(); err != nil {
-		return nil, err
+		return client.ImageListResult{}, err
 	}
-	return r.cli.ImageList(ctx, options)
+	return r.cli.ImageList(ctx, opts)
 }
 
-func (r *RealClient) ImageRemove(ctx context.Context, imageID string, options imagetypes.RemoveOptions) ([]imagetypes.DeleteResponse, error) {
+func (r *RealClient) ImageRemove(ctx context.Context, id string, opts client.ImageRemoveOptions) (client.ImageRemoveResult, error) {
 	if err := r.ensureClient(); err != nil {
-		return nil, err
+		return client.ImageRemoveResult{}, err
 	}
-	return r.cli.ImageRemove(ctx, imageID, options)
+	return r.cli.ImageRemove(ctx, id, opts)
 }
 
-func (r *RealClient) ImageBuild(ctx context.Context, buildContext io.Reader, options types.ImageBuildOptions) (types.ImageBuildResponse, error) {
+func (r *RealClient) ImageBuild(ctx context.Context, buildContext io.Reader, opts client.ImageBuildOptions) (client.ImageBuildResult, error) {
 	if err := r.ensureClient(); err != nil {
-		return types.ImageBuildResponse{}, err
+		return client.ImageBuildResult{}, err
 	}
-	return r.cli.ImageBuild(ctx, buildContext, options)
+	return r.cli.ImageBuild(ctx, buildContext, opts)
 }
 
-func (r *RealClient) ContainerCreate(ctx context.Context, config *containertypes.Config, hostConfig *containertypes.HostConfig, containerName string) (containertypes.CreateResponse, error) {
+func (r *RealClient) ContainerCreate(ctx context.Context, opts client.ContainerCreateOptions) (client.ContainerCreateResult, error) {
 	if err := r.ensureClient(); err != nil {
-		return containertypes.CreateResponse{}, err
+		return client.ContainerCreateResult{}, err
 	}
-	return r.cli.ContainerCreate(ctx, config, hostConfig, nil, nil, containerName)
+	return r.cli.ContainerCreate(ctx, opts)
 }
 
-func (r *RealClient) ContainerStart(ctx context.Context, containerID string, options containertypes.StartOptions) error {
+func (r *RealClient) ContainerStart(ctx context.Context, id string, opts client.ContainerStartOptions) (client.ContainerStartResult, error) {
 	if err := r.ensureClient(); err != nil {
-		return err
+		return client.ContainerStartResult{}, err
 	}
-	return r.cli.ContainerStart(ctx, containerID, options)
+	return r.cli.ContainerStart(ctx, id, opts)
 }
 
-func (r *RealClient) ContainerWait(ctx context.Context, containerID string, condition containertypes.WaitCondition) (<-chan containertypes.WaitResponse, <-chan error) {
-	if r.ensureClient() != nil {
+func (r *RealClient) ContainerWait(ctx context.Context, id string, opts client.ContainerWaitOptions) client.ContainerWaitResult {
+	if err := r.ensureClient(); err != nil {
 		errCh := make(chan error, 1)
-		errCh <- r.ensureClient()
-		return nil, errCh
+		errCh <- err
+		return client.ContainerWaitResult{Error: errCh}
 	}
-	return r.cli.ContainerWait(ctx, containerID, condition)
+	return r.cli.ContainerWait(ctx, id, opts)
 }
 
-func (r *RealClient) ContainerLogs(ctx context.Context, containerID string, options containertypes.LogsOptions) (io.ReadCloser, error) {
+func (r *RealClient) ContainerRemove(ctx context.Context, id string, opts client.ContainerRemoveOptions) (client.ContainerRemoveResult, error) {
 	if err := r.ensureClient(); err != nil {
-		return nil, err
+		return client.ContainerRemoveResult{}, err
 	}
-	return r.cli.ContainerLogs(ctx, containerID, options)
-}
-
-func (r *RealClient) ContainerRemove(ctx context.Context, containerID string, options containertypes.RemoveOptions) error {
-	if err := r.ensureClient(); err != nil {
-		return err
-	}
-	return r.cli.ContainerRemove(ctx, containerID, options)
+	return r.cli.ContainerRemove(ctx, id, opts)
 }
