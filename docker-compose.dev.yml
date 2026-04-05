@@ -1,0 +1,73 @@
+# Development compose — hot-reload for Go, Vite HMR for frontend, auto-rebuild marker
+#
+# Usage:
+#   docker compose -f docker-compose.dev.yml up --build
+#
+# - Go server rebuilds on .go/.yml file changes (via air)
+# - Frontend serves with Vite HMR on :3000 (proxies /api to Go on :9090)
+# - Marker image rebuilds when marker/ files change (via compose watch)
+
+services:
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  marker:
+    build: ./marker
+    image: autograder-marker
+    command: ["marker", "--help"]
+    develop:
+      watch:
+        - action: rebuild
+          path: ./marker/marker
+          target: /usr/src/app/marker
+        - action: rebuild
+          path: ./marker/pyproject.toml
+          target: /usr/src/app/pyproject.toml
+
+  autograder:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "9090:9090"
+    volumes:
+      # Mount source for live editing
+      - .:/app
+      # Docker socket for running grading containers
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Shared submissions dir
+      - ${AUTOGRADER_FILES_DIR:-/tmp/autograder-files}:/app/files
+      # Persist Go build cache for fast rebuilds
+      - go-cache:/root/.cache/go-build
+      - go-mod:/go/pkg/mod
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - AUTOGRADER_HOST_FILES_DIR=${AUTOGRADER_FILES_DIR:-/tmp/autograder-files}
+      - AUTOGRADER_MARKER_IMAGE=autograder-marker
+    depends_on:
+      redis:
+        condition: service_healthy
+      marker:
+        condition: service_completed_successfully
+
+  frontend:
+    image: denoland/deno:2.7.11
+    working_dir: /app/web
+    command: ["deno", "task", "dev", "--host", "0.0.0.0"]
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./web:/app/web
+    environment:
+      - DENO_DIR=/app/web/.deno-cache
+    depends_on:
+      - autograder
+
+volumes:
+  go-cache:
+  go-mod:

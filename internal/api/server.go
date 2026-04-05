@@ -65,6 +65,7 @@ func NewServer(cfg *config.Config, log *logrus.Logger, dc docker.Client, g grade
 	api := router.PathPrefix("/api").Subrouter()
 	api.Use(mw.Handler)
 	api.HandleFunc("/labs", h.listLabs).Methods("GET")
+	api.HandleFunc("/labs/{id}", h.getLab).Methods("GET")
 	api.HandleFunc("/submit", h.submit).Methods("POST")
 
 	// Serve frontend (Vite build output)

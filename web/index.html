@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" class="bg-slate-950 text-slate-200">
+<html lang="en" class="bg-slate-950">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -7,83 +7,7 @@
     <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body class="min-h-screen antialiased">
-    <div id="app" class="mx-auto max-w-2xl px-4 py-10">
-      <!-- Header -->
-      <header class="mb-8">
-        <h1 class="text-2xl font-bold tracking-tight text-white">Python Grader</h1>
-        <p class="mt-1 text-sm text-slate-400">
-          Choose a lab, upload your file, and get instant feedback.
-        </p>
-      </header>
-
-      <!-- Form -->
-      <main>
-        <form id="submit-form" class="space-y-5">
-          <!-- Lab select -->
-          <div>
-            <label for="lab-select" class="mb-1.5 block text-sm font-semibold text-slate-400"
-              >Lab</label
-            >
-            <select
-              id="lab-select"
-              name="lab_id"
-              required
-              class="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/25"
-            >
-              <option value="" disabled selected>Loading labs…</option>
-            </select>
-          </div>
-
-          <!-- Problem statement -->
-          <div
-            id="problem-statement"
-            class="hidden rounded-lg border-l-[3px] border-blue-500 bg-slate-900 px-4 py-3"
-          >
-            <strong class="mb-0.5 block text-xs font-semibold uppercase tracking-wide text-blue-400"
-              >Problem Statement</strong
-            >
-            <p id="problem-text" class="text-sm leading-relaxed text-slate-400"></p>
-          </div>
-
-          <!-- File input -->
-          <div>
-            <label for="file-input" class="mb-1.5 block text-sm font-semibold text-slate-400"
-              >Python File</label
-            >
-            <input
-              id="file-input"
-              type="file"
-              name="file"
-              accept=".py"
-              required
-              class="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 file:mr-3 file:rounded-md file:border-0 file:bg-slate-700 file:px-3 file:py-1 file:text-xs file:font-semibold file:text-slate-200 file:transition file:hover:bg-slate-600"
-            />
-          </div>
-
-          <!-- Submit -->
-          <button
-            type="submit"
-            id="submit-btn"
-            class="inline-flex items-center rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/50 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            Submit
-          </button>
-        </form>
-
-        <!-- Results -->
-        <div id="results" class="mt-8 hidden">
-          <h2 class="mb-4 text-lg font-semibold text-white">Results</h2>
-          <div id="results-body" class="space-y-2"></div>
-        </div>
-
-        <!-- Error -->
-        <div
-          id="error-box"
-          class="mt-5 hidden rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400"
-        ></div>
-      </main>
-    </div>
-
-    <script type="module" src="/src/main.ts"></script>
+    <div id="app"></div>
+    <script type="module" src="/src/index.tsx"></script>
   </body>
 </html>

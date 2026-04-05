@@ -1,0 +1,21 @@
+# Dev Dockerfile — runs Go with air for hot-reload, serves Vite-built frontend
+FROM golang:1.26-alpine
+
+RUN apk add --no-cache ca-certificates docker-cli git
+
+# Install air for Go hot-reload
+RUN go install github.com/air-verse/air@latest
+
+WORKDIR /app
+
+# Download Go deps first (cached layer)
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Source is mounted at runtime, but copy for initial build
+COPY . .
+
+EXPOSE 9090
+
+# air watches .go files and rebuilds/restarts on change
+CMD ["air", "-c", ".air.toml"]

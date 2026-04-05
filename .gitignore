@@ -1,6 +1,6 @@
 # Go
 bin/
-
+tmp/
 
 # Python
 __pycache__/
@@ -19,6 +19,8 @@ files/
 web/dist/
 web/node_modules/
 web/deno.lock
+web/.deno-cache/
+web/.vite/
 
 # IDE
 .vscode/

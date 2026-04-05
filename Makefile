@@ -10,10 +10,18 @@ run: build
 	./bin/autograder
 
 dev:
-	@echo "Starting Redis, Go server, and Vite dev server..."
-	@echo "Open http://localhost:3000 for hot-reload dev"
+	@echo "Starting dev environment with hot-reload..."
+	@echo "  Go API (air):  http://localhost:9090"
+	@echo "  Frontend (HMR): http://localhost:3000"
 	@echo "─────────────────────────────────────────────────"
-	docker compose up -d
+	docker compose -f docker-compose.dev.yml up --build --watch
+
+dev-local:
+	@echo "Starting local dev (no Docker for Go/frontend)..."
+	@echo "  Go API (air):  http://localhost:9090"
+	@echo "  Frontend (HMR): http://localhost:3000"
+	@echo "─────────────────────────────────────────────────"
+	docker compose up redis -d
 	@trap 'kill 0' INT; \
 		go run ./cmd/server & \
 		(cd web && deno task dev) & \

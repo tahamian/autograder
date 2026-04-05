@@ -11,10 +11,31 @@ export async function fetchLabs(): Promise<Lab[]> {
   return res.json();
 }
 
-export async function submitFile(labId: string, file: File): Promise<GradeResult> {
+export async function fetchLab(id: string): Promise<Lab> {
+  const res = await fetch(`${BASE}/labs/${id}`);
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error((data as ApiError).error || `Lab "${id}" not found`);
+  }
+  return res.json();
+}
+
+export type SubmitParams =
+  | { labId: string; file: File }
+  | { labId: string; code: string; filename?: string };
+
+export async function submitSolution(params: SubmitParams): Promise<GradeResult> {
   const form = new FormData();
-  form.append("lab_id", labId);
-  form.append("file", file);
+  form.append("lab_id", params.labId);
+
+  if ("file" in params) {
+    form.append("file", params.file);
+  } else {
+    form.append("code", params.code);
+    if (params.filename) {
+      form.append("filename", params.filename);
+    }
+  }
 
   const res = await fetch(`${BASE}/submit`, {
     method: "POST",
@@ -27,3 +48,6 @@ export async function submitFile(labId: string, file: File): Promise<GradeResult
   }
   return data as GradeResult;
 }
+
+// Legacy alias
+export const submitFile = (labId: string, file: File) => submitSolution({ labId, file });
